@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "536752711819",
+    "project_id": "all-in-one-scheduler",
+    "storage_bucket": "all-in-one-scheduler.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:536752711819:android:8fff93b61055222f110c8e",
+        "android_client_info": {
+          "package_name": "com.example.all_in_one_scheduler"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "536752711819-49pqjo5ds6jonl30orbd2hvqvu5gktfj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBykDP95SkoZmqlwUJReFnxRzwvpCoLuKg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "536752711819-49pqjo5ds6jonl30orbd2hvqvu5gktfj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

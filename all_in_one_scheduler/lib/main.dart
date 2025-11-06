@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
 
 import 'package:all_in_one_scheduler/pages/reminder_page.dart';
@@ -8,7 +9,9 @@ import 'package:all_in_one_scheduler/pages/alarm_page.dart';
 
 const platform = MethodChannel('com.example.all_in_one_scheduler/unlock');
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
