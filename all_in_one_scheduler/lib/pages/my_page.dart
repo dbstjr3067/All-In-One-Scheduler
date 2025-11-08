@@ -73,11 +73,13 @@ class _MyPageState extends State<MyPage> {
       appBar: AppBar(title: const Text("내 정보")),
       body: Center(
         child: _user == null
+        //로그인 한 상태(user값이 null이 아닌 상태) -> 유저 이름, 계정바꾸기&로그아웃 버튼 뜸
             ? ElevatedButton.icon(
           icon: const Icon(Icons.login),
           label: const Text("Google 계정으로 로그인"),
           onPressed: _signInWithGoogle,
         )
+        //로그인을 아직 하지 않은 상태(Guest 상태) -> 게스트, 로그인버튼 뜸
             : Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

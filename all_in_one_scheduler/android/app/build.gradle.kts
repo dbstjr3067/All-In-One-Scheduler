@@ -1,5 +1,6 @@
  plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
@@ -42,5 +43,10 @@ android {
 flutter {
     source = "../.."
 }
-
-apply plugin: 'com.google.gms.google-services'
+dependencies {
+    // Flutter embedding
+    implementation("io.flutter:flutter_embedding_debug:1.0.0")
+    // Flutter plugin interface (예: lifecycle, Firebase)
+    implementation("io.flutter:flutter_plugin_android_lifecycle:2.0.0")
+}
+apply(plugin = "com.google.gms.google-services")

@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
+import 'firebase_options.dart';
 
 import 'package:all_in_one_scheduler/pages/reminder_page.dart';
 import 'package:all_in_one_scheduler/pages/scheduler_page.dart';
 import 'package:all_in_one_scheduler/pages/statistics_page.dart';
 import 'package:all_in_one_scheduler/pages/alarm_page.dart';
+import 'package:all_in_one_scheduler/pages/my_page.dart';
 
 const platform = MethodChannel('com.example.all_in_one_scheduler/unlock');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
