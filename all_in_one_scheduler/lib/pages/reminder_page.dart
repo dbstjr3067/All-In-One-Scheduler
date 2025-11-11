@@ -14,7 +14,7 @@ class ReminderPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('오늘 할 일'),
-        titleTextStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
+        titleTextStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50, color: Colors.black),
         centerTitle: false,
       ),
       body: Text('오늘 할 일임')

@@ -14,6 +14,12 @@ class MyPage extends StatefulWidget {
 class _MyPageState extends State<MyPage> {
   User? _user;
 
+  @override
+  void initState() {
+    super.initState();
+    _user = FirebaseAuth.instance.currentUser;
+  }
+
   Future<void> _signInWithGoogle() async {
     try {
       //1. Google 로그인 창 열기

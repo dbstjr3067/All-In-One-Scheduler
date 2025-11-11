@@ -45,7 +45,8 @@ class _HomePageState extends State<HomePage> {
     ReminderPage(),
     SchedulerPage(),
     StatisticsPage(),
-    AlarmPage()
+    AlarmPage(),
+    MyPage()
   ];
 
   @override
@@ -53,6 +54,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     platform.setMethodCallHandler((call) async {
       if (call.method == "fromUnlock") {
+        debugPrint("언락 메시지 받았음");
         final int index = call.arguments as int;
         setState(() {
           _selectedIndex = index;
@@ -92,6 +94,10 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.alarm),
             label: '알람',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: '내정보',
           ),
         ]
       ),

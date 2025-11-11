@@ -47,6 +47,6 @@ dependencies {
     // Flutter embedding
     implementation("io.flutter:flutter_embedding_debug:1.0.0")
     // Flutter plugin interface (예: lifecycle, Firebase)
-    implementation("io.flutter:flutter_plugin_android_lifecycle:2.0.0")
+    //implementation("io.flutter:flutter_plugin_android_lifecycle:2.0.0")
 }
 apply(plugin = "com.google.gms.google-services")
