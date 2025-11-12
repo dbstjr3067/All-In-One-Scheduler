@@ -8,30 +8,35 @@ class SchedulerPage extends StatefulWidget {
 }
 
 class _SchedulerPageState extends State<SchedulerPage> {
-  DateTime selectedDate = DateTime(2024, 6, 26);
-  DateTime displayMonth = DateTime(2024, 6);
+  late DateTime selectedDate;
+  late DateTime displayMonth;
 
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    selectedDate = now;
+    displayMonth = DateTime(now.year, now.month);
+  }
   String getMonthName(int month) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      '1월', '2월', '3월', '4월', '5월', '6월',
+      '7월', '8월', '9월', '10월', '11월', '12월'
     ];
     return months[month - 1];
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
+    return SafeArea(
         child: Column(
           children: [
             // Header
             Container(
               color: const Color(0xFFD4D4E8),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              padding: const EdgeInsets.all(16),
               child: const Align(
-                alignment: Alignment.centerLeft,
+                alignment: Alignment.bottomLeft,
                 child: Text(
                   '캘린더',
                   style: TextStyle(
@@ -44,9 +49,9 @@ class _SchedulerPageState extends State<SchedulerPage> {
             ),
 
             // Calendar Section
-            Container(
+            Container( //20xx년 xx월 < > 화면
               color: const Color(0xFFFFFBF5),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
               child: Column(
                 children: [
                   // Month Navigation
@@ -54,10 +59,10 @@ class _SchedulerPageState extends State<SchedulerPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${getMonthName(displayMonth.month)} ${displayMonth.year}',
+                        '${displayMonth.year}년 ${getMonthName(displayMonth.month)}',
                         style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       Row(
@@ -70,6 +75,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
                                   displayMonth.year,
                                   displayMonth.month - 1,
                                 );
+                                selectedDate = DateTime(displayMonth.year, displayMonth.month, 1);
                               });
                             },
                           ),
@@ -81,6 +87,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
                                   displayMonth.year,
                                   displayMonth.month + 1,
                                 );
+                                selectedDate = DateTime(displayMonth.year, displayMonth.month, 1);
                               });
                             },
                           ),
@@ -92,16 +99,16 @@ class _SchedulerPageState extends State<SchedulerPage> {
                   const SizedBox(height: 16),
 
                   // Weekday Headers
-                  Row(
+                  Row( //월 화 수 ... 일 화면
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+                    children: ['월', '화', '수', '목', '금', '토', '일']
                         .map((day) => SizedBox(
                       width: 45,
                       child: Center(
                         child: Text(
                           day,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 15,
                             color: Colors.grey[600],
                             fontWeight: FontWeight.w500,
                           ),
@@ -111,7 +118,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
                         .toList(),
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 1),
 
                   // Calendar Grid
                   _buildCalendarGrid(),
@@ -121,8 +128,23 @@ class _SchedulerPageState extends State<SchedulerPage> {
 
             // Time Selector
             Container(
-              color: const Color(0xFFFFFBF5),
+              margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey[300]!,
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(13),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -155,14 +177,14 @@ class _SchedulerPageState extends State<SchedulerPage> {
             ),
           ],
         ),
-      ),
     );
   }
 
   Widget _buildCalendarGrid() {
     final firstDayOfMonth = DateTime(displayMonth.year, displayMonth.month, 1);
     final lastDayOfMonth = DateTime(displayMonth.year, displayMonth.month + 1, 0);
-    final firstWeekday = firstDayOfMonth.weekday % 7;
+    // weekday: 1=월, 7=일. For MON-SUN layout, use (weekday - 1)
+    final firstWeekday = firstDayOfMonth.weekday - 1;
 
     List<Widget> dayWidgets = [];
 
@@ -185,7 +207,9 @@ class _SchedulerPageState extends State<SchedulerPage> {
               selectedDate = date;
             });
           },
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
             width: 45,
             height: 45,
             decoration: BoxDecoration(
@@ -193,13 +217,14 @@ class _SchedulerPageState extends State<SchedulerPage> {
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: Text(
-                '$day',
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 150),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: day == 10 ? Colors.blue : Colors.black,
+                  color: Colors.black,
                 ),
+                child: Text('$day'),
               ),
             ),
           ),

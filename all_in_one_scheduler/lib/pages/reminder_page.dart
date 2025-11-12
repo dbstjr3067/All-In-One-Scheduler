@@ -11,18 +11,27 @@ class ReminderPage extends StatelessWidget {
       'Flutter 프로젝트 수정',
       '책 20쪽 읽기',
     ];
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('오늘 할 일'),
-        titleTextStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50, color: Colors.black),
-        centerTitle: false,
+    return SafeArea(
+      child: Column(
+        children: [
+        // Header
+        Container(
+          color: const Color(0xFFD4D4E8),
+          padding: const EdgeInsets.all(16),
+          child: const Align(
+            alignment: Alignment.bottomLeft,
+            child: Text(
+              '오늘 할 일',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+        ),
+        ]
       ),
-      body: Text('오늘 할 일임')
-      /*body: ListView.builder(
-        itemCount: todayTasks.length,
-        itemBuilder: (context, index) {
-          return
-        }*/
     );
   }
 }
