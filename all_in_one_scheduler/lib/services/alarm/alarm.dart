@@ -1,5 +1,6 @@
 import 'package:all_in_one_scheduler/services/alarm/quiz_type.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Alarm {
   // 알람이 울리는 요일 (월: 1, 화: 2, ..., 일: 7)
@@ -28,8 +29,22 @@ class Alarm {
     QuizType? quizSetting,
   }) : this.quizSetting = quizSetting ?? QuizType(); // QuizType이 제공되지 않으면 기본 설정 사용
 
-  // --- 추가 편의 기능 (선택 사항) ---
-
+  // 객체의 특정 필드만 변경하여 새로운 Alarm 객체를 생성하는 메서드
+  Alarm copyWith({
+    TimeOfDay? alarmTime,
+    List<int>? repeatDays,
+    bool? isEnabled,
+    soundAsset,
+    QuizType? quizSetting,
+  }) {
+    return Alarm(
+      alarmTime: alarmTime ?? this.alarmTime, // 값이 제공되지 않으면 기존 값 사용
+      repeatDays: repeatDays ?? this.repeatDays,
+      isEnabled: isEnabled ?? this.isEnabled,
+      soundAsset: soundAsset ?? this.soundAsset,
+      quizSetting: quizSetting ?? this.quizSetting,
+    );
+  }
   // 알람 시간을 HH:mm 형식의 문자열로 변환
   String get formattedTime {
     final hour = alarmTime.hour.toString().padLeft(2, '0');
@@ -42,14 +57,18 @@ class Alarm {
       return '오전 $hour:$minute';
   }
 
+  // TimeOfDay 객체를 Firestore Timestamp로 변환
+  // 알람 시간만 저장하기 위해 임의의 날짜(2000/1/1) 사용
+  Timestamp _timeOfDayToTimestamp(TimeOfDay time) {
+    final dt = DateTime(2000, 1, 1, time.hour, time.minute);
+    return Timestamp.fromDate(dt);
+  }
   // 반복 요일 목록을 한글 문자열로 변환 (예: "월 수 금 일")
   String get repeatDaysString {
     if (repeatDays.isEmpty) return '매일';
-
     const dayMap = {
       1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토', 7: '일'
     };
-
     return repeatDays.map((day) => dayMap[day]).join(' ');
   }
 
@@ -57,8 +76,7 @@ class Alarm {
   Map<String, dynamic> toJson() {
     return {
       'repeatDays': repeatDays,
-      'alarmTimeHour': alarmTime.hour,
-      'alarmTimeMinute': alarmTime.minute,
+      'alarmTime': _timeOfDayToTimestamp(alarmTime),
       'isEnabled': isEnabled,
       'soundAsset': soundAsset,
       'quizSetting': {
@@ -71,10 +89,11 @@ class Alarm {
 
   // Map<String, dynamic>을 Alarm 객체로 변환 (데이터 로드 시 유용)
   factory Alarm.fromJson(Map<String, dynamic> json) {
-    final hour = json['alarmTimeHour'] as int;
-    final minute = json['alarmTimeMinute'] as int;
+    final Timestamp timestamp = json['alarmTime'] as Timestamp;
+    final DateTime dt = timestamp.toDate();
+    final timeOfDay = TimeOfDay.fromDateTime(dt);
     return Alarm(
-      alarmTime: TimeOfDay(hour: hour, minute: minute),
+      alarmTime: timeOfDay,
       repeatDays: List<int>.from(json['repeatDays']),
       isEnabled: json['isEnabled'],
       soundAsset: json['soundAsset'],

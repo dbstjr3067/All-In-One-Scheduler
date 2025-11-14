@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:all_in_one_scheduler/services/alarm/alarm.dart';
 import 'package:all_in_one_scheduler/services/alarm/quiz_type.dart';
 
+import 'alarm/alarm_puzzle_setting_page.dart';
+import 'alarm/alarm_sound_setting_page.dart';
+import 'alarm/alarm_setting_page.dart';
+
 class AlarmPage extends StatefulWidget {
   const AlarmPage({Key? key}) : super(key: key);
 
@@ -54,9 +58,60 @@ class _AlarmPageState extends State<AlarmPage> {
       ),
     ];
   }
-
   // scheduler_page.dart의 스타일을 참고한 배경색
   static const Color _cardColor = Color(0xFFEBEBFF); // 연한 보라색 계열
+
+  // 알람 설정 페이지를 Full-Screen Modal로 띄우는 함수
+  void _showAlarmSettings({Alarm? alarmToEdit, int? index}) {
+    // 수정 모드: 기존 알람 객체 복사본 전달
+    // 추가 모드: 새로운 기본 알람 객체 전달
+    final Alarm initialAlarm = alarmToEdit?.copyWith() ?? Alarm(
+      alarmTime: TimeOfDay.now(),
+      repeatDays: [1, 2, 3, 4, 5],
+      soundAsset: '공사소리',
+      quizSetting: null, // 기본은 알람음 모드
+      isEnabled: true,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // 전체 화면 모달을 위해 필수
+      builder: (BuildContext context) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height,
+          child: AlarmSettingPage(
+          ),
+        );
+      },
+    ).then((result) {
+      if (result != null) {
+        setState(() {
+          if (result is Alarm) {
+            // 저장(확인) 버튼을 눌러 Alarm 객체가 반환된 경우
+            if (index != null) {
+              // 기존 알람 수정
+              _alarms[index] = result;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('알람이 수정되었습니다.')),
+              );
+            } else {
+              // 새 알람 추가
+              _alarms.add(result);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('새 알람이 추가되었습니다.')),
+              );
+            }
+          } else if (result == 'delete' && index != null) {
+            // 삭제 버튼을 눌러 'delete' 문자열이 반환된 경우
+            _alarms.removeAt(index);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('알람이 삭제되었습니다.')),
+            );
+          }
+        });
+      }
+    });
+  }
 
   //알람의 isEnabled 상태를 토글하는 함수
   void _toggleAlarm(int index, bool newValue) {
@@ -108,15 +163,16 @@ class _AlarmPageState extends State<AlarmPage> {
                   children: _alarms.asMap().entries.map((entry) {
                     final index = entry.key;
                     final alarm = entry.value;
-
-                    // _buildAlarmItem 위젯에 실제 알람 데이터를 전달
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildAlarmItem(
-                        title: alarm.formattedTime,
-                        subtitle: alarm.repeatDaysString,
-                        value: alarm.isEnabled,
-                        onChanged: (newValue) => _toggleAlarm(index, newValue),
+                    return GestureDetector(
+                      onTap: () => _showAlarmSettings(alarmToEdit: alarm, index: index),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildAlarmItem(
+                          title: alarm.formattedTime,
+                          subtitle: alarm.repeatDaysString,
+                          value: alarm.isEnabled,
+                          onChanged: (newValue) => _toggleAlarm(index, newValue),
+                        ),
                       ),
                     );
                   }).toList(),
