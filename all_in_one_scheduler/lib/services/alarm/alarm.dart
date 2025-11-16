@@ -1,6 +1,7 @@
 import 'package:all_in_one_scheduler/services/alarm/quiz_type.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class Alarm {
   // 알람이 울리는 요일 (월: 1, 화: 2, ..., 일: 7)
@@ -65,7 +66,7 @@ class Alarm {
   }
   // 반복 요일 목록을 한글 문자열로 변환 (예: "월 수 금 일")
   String get repeatDaysString {
-    if (repeatDays.isEmpty) return '매일';
+    if (repeatDays.isEmpty||repeatDays.length == 7) return '매일';
     const dayMap = {
       1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토', 7: '일'
     };

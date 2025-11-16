@@ -63,52 +63,37 @@ class _AlarmPageState extends State<AlarmPage> {
 
   // 알람 설정 페이지를 Full-Screen Modal로 띄우는 함수
   void _showAlarmSettings({Alarm? alarmToEdit, int? index}) {
-    // 수정 모드: 기존 알람 객체 복사본 전달
-    // 추가 모드: 새로운 기본 알람 객체 전달
-    final Alarm initialAlarm = alarmToEdit?.copyWith() ?? Alarm(
-      alarmTime: TimeOfDay.now(),
-      repeatDays: [1, 2, 3, 4, 5],
-      soundAsset: '공사소리',
-      quizSetting: null, // 기본은 알람음 모드
-      isEnabled: true,
-    );
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true, // 전체 화면 모달을 위해 필수
-      builder: (BuildContext context) {
-        return SizedBox(
-          height: MediaQuery.of(context).size.height,
-          child: AlarmSettingPage(
-          ),
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AlarmSettingPage(
+          initialAlarm: alarmToEdit,
+          isEditMode: alarmToEdit != null,
+        ),
+      ),
     ).then((result) {
-      if (result != null) {
+      if (result != null && result is Alarm) {
         setState(() {
-          if (result is Alarm) {
-            // 저장(확인) 버튼을 눌러 Alarm 객체가 반환된 경우
-            if (index != null) {
-              // 기존 알람 수정
-              _alarms[index] = result;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('알람이 수정되었습니다.')),
-              );
-            } else {
-              // 새 알람 추가
-              _alarms.add(result);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('새 알람이 추가되었습니다.')),
-              );
-            }
-          } else if (result == 'delete' && index != null) {
-            // 삭제 버튼을 눌러 'delete' 문자열이 반환된 경우
-            _alarms.removeAt(index);
+          if (index != null) {
+            // 기존 알람 수정
+            _alarms[index] = result;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('알람이 삭제되었습니다.')),
+              const SnackBar(content: Text('알람이 수정되었습니다.')),
+            );
+          } else {
+            // 새 알람 추가
+            _alarms.add(result);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('새 알람이 추가되었습니다.')),
             );
           }
         });
+      }
+      else if(result != null && result == 'delete'){
+        _alarms.removeAt(index!);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('알람이 삭제되었습니다.')),
+        );
       }
     });
   }
@@ -146,7 +131,7 @@ class _AlarmPageState extends State<AlarmPage> {
                     icon: const Icon(Icons.add_circle_outline, size: 30),
                     color: Colors.black,
                     onPressed: () {
-                      // 알람 추가 로직
+                      _showAlarmSettings();
                     },
                   ),
                 ],

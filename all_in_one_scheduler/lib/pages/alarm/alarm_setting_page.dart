@@ -1,16 +1,124 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:all_in_one_scheduler/services/alarm/alarm.dart';
+import 'package:all_in_one_scheduler/services/alarm/quiz_type.dart';
+import 'alarm_sound_setting_page.dart';
+import 'alarm_puzzle_setting_page.dart';
+import 'package:intl/intl.dart';
 
 class AlarmSettingPage extends StatefulWidget {
-  const AlarmSettingPage({Key? key}) : super(key: key);
+  final Alarm? initialAlarm; // 수정할 알람 (null이면 새 알람 생성)
+  final bool isEditMode; // 수정 모드 여부
+
+  const AlarmSettingPage({
+    Key? key,
+    this.initialAlarm,
+    this.isEditMode = false,
+  }) : super(key: key);
 
   @override
   State<AlarmSettingPage> createState() => _AlarmSettingPageState();
 }
 
 class _AlarmSettingPageState extends State<AlarmSettingPage> {
-  int selectedHour = 3;
-  int selectedMinute = 50;
+  late int selectedHour;
+  late int selectedMinute;
+
+  // 요일 선택 상태 (월화수목금토일) - 1~7로 매핑
+  late List<bool> selectedDays;
+
+  // 알람음 설정
+  late String _soundAsset;
+
+  // 퀴즈 설정
+  late QuizType? _quizSetting;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.initialAlarm != null) {
+      // 기존 알람 수정
+      final alarm = widget.initialAlarm!;
+      selectedHour = alarm.alarmTime.hour;
+      selectedMinute = alarm.alarmTime.minute;
+
+      // repeatDays를 selectedDays로 변환 (1=월, 7=일)
+      selectedDays = List.generate(7, (index) => alarm.repeatDays.contains(index + 1));
+
+      _soundAsset = alarm.soundAsset;
+      _quizSetting = alarm.quizSetting;
+    } else {
+      // 새 알람 생성
+      selectedHour = TimeOfDay.now().hour;
+      selectedMinute = TimeOfDay.now().minute;
+      selectedDays = [false, false, false, false, false, false, false];
+      _soundAsset = '공사소리'; // 기본값
+      _quizSetting = null; // 기본값은 알람음 모드
+    }
+  }
+
+  // 알람음 설정 페이지로 이동
+  void _navigateToSoundSetting() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AlarmSoundSettingPage(
+          initialSoundAsset: _soundAsset,
+        ),
+      ),
+    );
+
+    if (result != null && result is String) {
+      setState(() {
+        _soundAsset = result;
+      });
+    }
+  }
+
+  // 퍼즐 설정 페이지로 이동
+  void _navigateToPuzzleSetting() async {
+    final initialQuiz = _quizSetting ?? QuizType(
+      difficulty: QuizDifficulty.easy,
+      requiredCount: 1,
+    );
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AlarmPuzzleSettingPage(
+          initialQuizSetting: initialQuiz,
+        ),
+      ),
+    );
+
+    if (result != null && result is QuizType) {
+      setState(() {
+        _quizSetting = result;
+      });
+    }
+  }
+
+  // 알람 저장 (OK 버튼)
+  void _saveAlarm() {
+    // selectedDays를 repeatDays로 변환
+    List<int> repeatDays = [];
+    for (int i = 0; i < selectedDays.length; i++) {
+      if (selectedDays[i]) {
+        repeatDays.add(i + 1); // 1=월, 7=일
+      }
+    }
+
+    final alarm = Alarm(
+      alarmTime: TimeOfDay(hour: selectedHour, minute: selectedMinute),
+      repeatDays: repeatDays,
+      soundAsset: _soundAsset,
+      quizSetting: _quizSetting,
+      isEnabled: widget.initialAlarm?.isEnabled ?? true,
+    );
+
+    Navigator.pop(context, alarm); // Alarm 객체 반환
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +127,24 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
-          '알람 세부설정 화면',
-          style: TextStyle(color: Colors.white70, fontSize: 14),
+        title: Text(
+          widget.isEditMode ? '알람 수정' : '알람 추가',
+          style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: widget.isEditMode
+            ? [
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.white),
+            onPressed: () {
+              Navigator.pop(context, 'delete');
+            },
+          ),
+        ]
+            : null,
       ),
       body: Column(
         children: [
@@ -41,16 +163,16 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
                       });
                     },
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 14),
                   const Text(
                     ':',
                     style: TextStyle(
-                      fontSize: 80,
+                      fontSize: 70,
                       fontWeight: FontWeight.w300,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 14),
                   // 분 선택
                   _buildTimeColumn(
                     value: selectedMinute,
@@ -58,10 +180,8 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
                     onChanged: (newValue) {
                       setState(() {
                         if (selectedMinute == 59 && newValue == 0) {
-                          // 59에서 0으로 넘어갈 때 시간 증가
                           selectedHour = (selectedHour + 1) % 24;
                         } else if (selectedMinute == 0 && newValue == 59) {
-                          // 0에서 59로 넘어갈 때 시간 감소
                           selectedHour = (selectedHour - 1 + 24) % 24;
                         }
                         selectedMinute = newValue;
@@ -83,30 +203,24 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // 알람 반복 텍스트
+                _buildRepeatText(),
+                const SizedBox(height: 12),
+                // 요일 선택
+                _buildDaySelector(),
+                const SizedBox(height: 20),
                 _buildSettingItem(
                   title: '알람음',
-                  subtitle: '소리1',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const TempSettingPage(title: '알람음 선택'),
-                      ),
-                    );
-                  },
+                  subtitle: _soundAsset,
+                  onTap: _navigateToSoundSetting,
                 ),
                 const SizedBox(height: 10),
                 _buildSettingItem(
                   title: '퍼즐 종류',
-                  subtitle: '퍼즐1',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const TempSettingPage(title: '퍼즐 종류 선택'),
-                      ),
-                    );
-                  },
+                  subtitle: _quizSetting != null
+                      ? '${_quizSetting!.typeName} (${_getDifficultyText(_quizSetting!.difficulty)})'
+                      : '설정 안 함',
+                  onTap: _navigateToPuzzleSetting,
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -114,7 +228,7 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
                   children: [
                     TextButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.pop(context); // 취소
                       },
                       child: const Text(
                         'Cancel',
@@ -126,9 +240,7 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
                     ),
                     const SizedBox(width: 10),
                     TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: _saveAlarm,
                       child: const Text(
                         'OK',
                         style: TextStyle(
@@ -148,6 +260,17 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
     );
   }
 
+  String _getDifficultyText(QuizDifficulty difficulty) {
+    switch (difficulty) {
+      case QuizDifficulty.easy:
+        return '쉬움';
+      case QuizDifficulty.medium:
+        return '보통';
+      case QuizDifficulty.hard:
+        return '어려움';
+    }
+  }
+
   Widget _buildTimeColumn({
     required int value,
     required int maxValue,
@@ -157,15 +280,13 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
     int nextValue = (value + 1) % maxValue;
 
     return SizedBox(
-      width: 120,
-      height: 350,
+      width: 105,
+      height: 315,
       child: GestureDetector(
         onVerticalDragUpdate: (details) {
           if (details.delta.dy < -10) {
-            // 위로 스와이프 (증가)
             onChanged((value + 1) % maxValue);
           } else if (details.delta.dy > 10) {
-            // 아래로 스와이프 (감소)
             onChanged((value - 1 + maxValue) % maxValue);
           }
         },
@@ -174,36 +295,33 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 위쪽 숫자 (어둡게)
               Text(
                 prevValue.toString().padLeft(2, '0'),
                 style: const TextStyle(
-                  fontSize: 50,
+                  fontSize: 49,
                   fontWeight: FontWeight.w300,
                   color: Color(0xFF9B8BB8),
                 ),
               ),
-              const SizedBox(height: 20),
-              // 선택된 숫자 (밝게) - 클릭 가능
+              const SizedBox(height: 21),
               GestureDetector(
                 onTap: () {
-                  _showInputDialog(context, value, maxValue, onChanged);
+                  _showKeyboard(context, value, maxValue, onChanged);
                 },
                 child: Text(
                   value.toString().padLeft(2, '0'),
                   style: const TextStyle(
-                    fontSize: 80,
+                    fontSize: 70,
                     fontWeight: FontWeight.w300,
                     color: Colors.white,
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              // 아래쪽 숫자 (어둡게)
+              const SizedBox(height: 21),
               Text(
                 nextValue.toString().padLeft(2, '0'),
                 style: const TextStyle(
-                  fontSize: 50,
+                  fontSize: 49,
                   fontWeight: FontWeight.w300,
                   color: Color(0xFF9B8BB8),
                 ),
@@ -215,8 +333,34 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
     );
   }
 
-  void _showInputDialog(BuildContext context, int currentValue, int maxValue, Function(int) onChanged) {
+  void _showKeyboard(BuildContext context, int currentValue, int maxValue, Function(int) onChanged) {
     final TextEditingController controller = TextEditingController();
+    final OverlayEntry overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: 0,
+        right: 0,
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            height: 0,
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(2),
+              ],
+              style: const TextStyle(fontSize: 0, color: Colors.transparent),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
 
     controller.addListener(() {
       String text = controller.text;
@@ -228,19 +372,19 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
       bool isHour = maxValue == 24;
 
       if (isHour) {
-        // 시간 입력 로직
         if (text.length == 1) {
           if (inputValue >= 3) {
-            // 3~9 입력 시 바로 적용
             if (inputValue <= 23) {
               onChanged(inputValue);
-              Navigator.pop(context);
+              overlayEntry.remove();
+              controller.dispose();
             }
           }
         } else if (text.length == 2) {
           if (inputValue >= 0 && inputValue <= 23) {
             onChanged(inputValue);
-            Navigator.pop(context);
+            overlayEntry.remove();
+            controller.dispose();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -252,17 +396,17 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
           }
         }
       } else {
-        // 분 입력 로직
         if (text.length == 1) {
           if (inputValue >= 6) {
-            // 6~9 입력 시 바로 적용
             onChanged(inputValue);
-            Navigator.pop(context);
+            overlayEntry.remove();
+            controller.dispose();
           }
         } else if (text.length == 2) {
           if (inputValue >= 0 && inputValue <= 59) {
             onChanged(inputValue);
-            Navigator.pop(context);
+            overlayEntry.remove();
+            controller.dispose();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -276,51 +420,85 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
       }
     });
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF7B68A6),
-          title: Text(
-            maxValue == 24 ? '시간 입력' : '분 입력',
-            style: const TextStyle(color: Colors.white),
+    Overlay.of(context).insert(overlayEntry);
+  }
+
+  // 선택한 요일에 따른 반복 텍스트 생성
+  Widget _buildRepeatText() {
+    final days = ['월', '화', '수', '목', '금', '토', '일'];
+    final selectedCount = selectedDays.where((d) => d).length;
+
+    String repeatText;
+
+    if (selectedCount == 0) {
+      // 모두 체크 해제: 오늘 날짜 표시
+      final now = DateTime.now();
+      final formatter = DateFormat('M월 d일');
+      final weekday = days[now.weekday - 1]; // DateTime.weekday는 1(월)~7(일)
+      repeatText = '오늘 - ${formatter.format(now)} ($weekday)';
+    } else if (selectedCount == 7) {
+      // 모두 체크: 매일
+      repeatText = '매일';
+    } else {
+      // 일부 체크: 매주 x, x, x
+      List<String> selectedDayNames = [];
+      for (int i = 0; i < selectedDays.length; i++) {
+        if (selectedDays[i]) {
+          selectedDayNames.add(days[i]);
+        }
+      }
+      repeatText = '매주 ${selectedDayNames.join(', ')}';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Text(
+        repeatText,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDaySelector() {
+    final days = ['월', '화', '수', '목', '금', '토', '일'];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(7, (index) {
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              selectedDays[index] = !selectedDays[index];
+            });
+          },
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: selectedDays[index]
+                  ? const Color(0xFF7B68A6)
+                  : Colors.grey[300],
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                days[index],
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: selectedDays[index]
+                      ? Colors.white
+                      : Colors.grey[600],
+                ),
+              ),
+            ),
           ),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(2),
-            ],
-            style: const TextStyle(
-              fontSize: 40,
-              color: Colors.white,
-            ),
-            decoration: InputDecoration(
-              hintText: currentValue.toString().padLeft(2, '0'),
-              hintStyle: const TextStyle(color: Colors.white54),
-              enabledBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white),
-              ),
-              focusedBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white, width: 2),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text(
-                '취소',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
         );
-      },
+      }),
     );
   }
 
@@ -365,29 +543,6 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
               size: 24,
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-// 임시 설정 페이지
-class TempSettingPage extends StatelessWidget {
-  final String title;
-
-  const TempSettingPage({Key? key, required this.title}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        backgroundColor: const Color(0xFF7B68A6),
-      ),
-      body: Center(
-        child: Text(
-          '$title 페이지',
-          style: const TextStyle(fontSize: 20),
         ),
       ),
     );
