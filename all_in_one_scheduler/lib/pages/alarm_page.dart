@@ -15,49 +15,8 @@ class AlarmPage extends StatefulWidget {
 
 class _AlarmPageState extends State<AlarmPage> {
   // 하드코딩된 알람 리스트
-  late List<Alarm> _alarms;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeHardcodedAlarms();
-  }
-
-  // 알람 리스트를 하드코딩하여 초기화합니다.
-  void _initializeHardcodedAlarms() {
-    _alarms = [
-      // 1. 아침 기상 알람 (월,화,수,목,금) - 활성화
-      Alarm(
-        alarmTime: TimeOfDay(hour: 6, minute: 30), // 06:30
-        repeatDays: [1, 2, 3, 4, 5],
-        isEnabled: true,
-        quizSetting: QuizType(
-          difficulty: QuizDifficulty.hard,
-          requiredCount: 5,
-        ),
-      ),
-      // 2. 점심 약속 알람 (반복 없음) - 비활성화 (사진의 예시 템플릿 역할)
-      Alarm(
-        alarmTime: TimeOfDay(hour: 12, minute: 0), // 12:00
-        repeatDays: [],
-        isEnabled: false,
-        quizSetting: QuizType(
-          difficulty: QuizDifficulty.easy,
-          requiredCount: 1,
-        ),
-      ),
-      // 3. 주말 알람 (토, 일) - 활성화
-      Alarm(
-        alarmTime: TimeOfDay(hour: 17, minute: 11), // PM 5:11
-        repeatDays: [6, 7],
-        isEnabled: true,
-        quizSetting: QuizType(
-          difficulty: QuizDifficulty.medium,
-          requiredCount: 3,
-        ),
-      ),
-    ];
-  }
+  late List<Alarm> _alarms = [];
+  
   // scheduler_page.dart의 스타일을 참고한 배경색
   static const Color _cardColor = Color(0xFFEBEBFF); // 연한 보라색 계열
 
@@ -72,28 +31,31 @@ class _AlarmPageState extends State<AlarmPage> {
         ),
       ),
     ).then((result) {
-      if (result != null && result is Alarm) {
+      if (result != null) {
         setState(() {
-          if (index != null) {
-            // 기존 알람 수정
-            _alarms[index] = result;
+          if (result is Alarm) {
+            // 저장(확인) 버튼을 눌러 Alarm 객체가 반환된 경우
+            if (index != null) {
+              // 기존 알람 수정
+              _alarms[index] = result;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('알람이 수정되었습니다.')),
+              );
+            } else {
+              // 새 알람 추가
+              _alarms.add(result);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('새 알람이 추가되었습니다.')),
+              );
+            }
+          } else if (result == 'delete' && index != null) {
+            // 삭제 버튼을 눌러 'delete' 문자열이 반환된 경우
+            _alarms.removeAt(index);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('알람이 수정되었습니다.')),
-            );
-          } else {
-            // 새 알람 추가
-            _alarms.add(result);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('새 알람이 추가되었습니다.')),
+              const SnackBar(content: Text('알람이 삭제되었습니다.')),
             );
           }
         });
-      }
-      else if(result != null && result == 'delete'){
-        _alarms.removeAt(index!);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('알람이 삭제되었습니다.')),
-        );
       }
     });
   }

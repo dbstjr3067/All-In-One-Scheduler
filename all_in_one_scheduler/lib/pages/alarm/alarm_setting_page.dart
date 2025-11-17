@@ -1,3 +1,5 @@
+import 'dart:ui_web';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:all_in_one_scheduler/services/alarm/alarm.dart';
@@ -50,8 +52,8 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
       _quizSetting = alarm.quizSetting;
     } else {
       // 새 알람 생성
-      selectedHour = TimeOfDay.now().hour;
-      selectedMinute = TimeOfDay.now().minute;
+      selectedHour = 6;
+      selectedMinute = 0;
       selectedDays = [false, false, false, false, false, false, false];
       _soundAsset = '공사소리'; // 기본값
       _quizSetting = null; // 기본값은 알람음 모드
@@ -278,7 +280,6 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
   }) {
     int prevValue = (value - 1 + maxValue) % maxValue;
     int nextValue = (value + 1) % maxValue;
-
     return SizedBox(
       width: 105,
       height: 315,
@@ -433,9 +434,18 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
     if (selectedCount == 0) {
       // 모두 체크 해제: 오늘 날짜 표시
       final now = DateTime.now();
-      final formatter = DateFormat('M월 d일');
-      final weekday = days[now.weekday - 1]; // DateTime.weekday는 1(월)~7(일)
-      repeatText = '오늘 - ${formatter.format(now)} ($weekday)';
+      final tomorrow = DateTime.now().add(Duration(days: 1));
+      if (DateTime.now().hour < selectedHour || DateTime.now().hour == selectedHour && DateTime.now().minute > selectedMinute) {
+        final formatter = DateFormat('M월 d일');
+        final weekday = days[now.weekday - 1]; // DateTime.weekday는 1(월)~7(일)
+        repeatText = '오늘 - ${formatter.format(now)} ($weekday)';
+      }
+      else
+      {
+        final formatter = DateFormat('M월 d일');
+        final weekday = days[tomorrow.weekday - 1]; // DateTime.weekday는 1(월)~7(일)
+        repeatText = '내일 - ${formatter.format(tomorrow)} ($weekday)';
+      }
     } else if (selectedCount == 7) {
       // 모두 체크: 매일
       repeatText = '매일';
@@ -447,7 +457,7 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
           selectedDayNames.add(days[i]);
         }
       }
-      repeatText = '매주 ${selectedDayNames.join(', ')}';
+      repeatText = '${selectedDayNames.join(', ')}';
     }
 
     return Padding(

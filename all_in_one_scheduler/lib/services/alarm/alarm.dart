@@ -66,11 +66,26 @@ class Alarm {
   }
   // 반복 요일 목록을 한글 문자열로 변환 (예: "월 수 금 일")
   String get repeatDaysString {
-    if (repeatDays.isEmpty||repeatDays.length == 7) return '매일';
+    if (repeatDays.length == 7) return '매일';
+    else if(repeatDays.isEmpty){
+      final now = DateTime.now();
+      final tomorrow = DateTime.now().add(Duration(days: 1));
+      final days = ['월', '화', '수', '목', '금', '토', '일'];
+      if(DateTime.now().hour < alarmTime.hour || DateTime.now().hour == alarmTime.hour && DateTime.now().minute > alarmTime.minute) {
+        final formatter = DateFormat('M월 d일');
+        final weekday = days[now.weekday - 1]; // DateTime.weekday는 1(월)~7(일)
+        return '오늘 - ${formatter.format(now)} ($weekday)';
+      }
+      else{
+        final formatter = DateFormat('M월 d일');
+        final weekday = days[tomorrow.weekday - 1]; // DateTime.weekday는 1(월)~7(일)
+        return '내일 - ${formatter.format(tomorrow)} ($weekday)';
+      }
+    }
     const dayMap = {
       1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토', 7: '일'
     };
-    return repeatDays.map((day) => dayMap[day]).join(' ');
+    return '매주 '+repeatDays.map((day) => dayMap[day]).join(' ');
   }
 
   // 현재 알람 객체의 모든 정보를 Map<String, dynamic>으로 변환 (데이터 저장 시 유용)
