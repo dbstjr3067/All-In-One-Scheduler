@@ -9,6 +9,9 @@ import 'alarm/alarm_puzzle_setting_page.dart';
 import 'alarm/alarm_sound_setting_page.dart';
 import 'alarm/alarm_setting_page.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:all_in_one_scheduler/services/firestore_service.dart';
+
 class AlarmPage extends StatefulWidget {
   const AlarmPage({Key? key}) : super(key: key);
 
@@ -23,10 +26,16 @@ class _AlarmPageState extends State<AlarmPage> {
   //SharedPreference 키
   static const String _alarmsKey = 'saved_alarms';
 
+  final FirestoreService _firestoreService = FirestoreService();
+
   @override
   void initState() {
     super.initState();
-    _loadAlarmsFromLocal(); // 앱 시작 시 로컬에서 알람 불러오기
+    final User? user = FirebaseAuth.instance.currentUser;
+    if(user != null)
+      _loadAlarmsFromFirestore(); //앱 시작 시 데이터베이스에서 알람 불러오기
+    else
+      _loadAlarmsFromLocal(); // 앱 시작 시 로컬에서 알람 불러오기
   }
   Future<void> _loadAlarmsFromLocal() async { //로컬에서 알람 불러오기
     try {
@@ -71,6 +80,39 @@ class _AlarmPageState extends State<AlarmPage> {
       print('alarm_page: 알람 저장 실패: $e');
     }
   }
+  Future<void> _loadAlarmsFromFirestore() async {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('alarm_page: Firestore 알람을 로드하려면 로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      final List<Alarm> firestoreAlarms = await _firestoreService.loadAlarms(user);
+
+      if (firestoreAlarms.isNotEmpty) {
+        setState(() {
+          // Firestore의 데이터를 로컬 데이터보다 우선시하여 설정
+          _alarms = firestoreAlarms;
+        });
+        print('alarm_page: Firestore에서 ${_alarms.length}개의 알람을 성공적으로 불러왔습니다.');
+        // Firestore에서 불러왔다면 로컬에도 저장하여 상태 동기화
+        _saveAlarmsToLocal();
+      } else {
+        print('alarm_page: Firestore에 저장된 알람이 없습니다.');
+      }
+    } catch (e) {
+      print('alarm_page: Firestore 알람 로드 실패: $e');
+    }
+  }
+  Future<void> _saveAlarmsToFirestore(User user) async {
+    try {
+      await _firestoreService.saveAlarms(user, _alarms);
+      print('alarm_page: ${_alarms.length}개의 알람 목록을 Firestore에 성공적으로 저장했습니다.');
+    } catch (e) {
+      print('alarm_page: 알람 목록 Firestore 저장 실패: $e');
+    }
+  }
   // 알람 설정 페이지를 Full-Screen Modal로 띄우는 함수
   void _showAlarmSettings({Alarm? alarmToEdit, int? index}) {
     Navigator.push(
@@ -108,6 +150,9 @@ class _AlarmPageState extends State<AlarmPage> {
           }
           //변경사항을 로컬에 저장
           _saveAlarmsToLocal();
+          final User? user = FirebaseAuth.instance.currentUser;
+          if(user != null)
+            _saveAlarmsToFirestore(user);
         });
       }
     });

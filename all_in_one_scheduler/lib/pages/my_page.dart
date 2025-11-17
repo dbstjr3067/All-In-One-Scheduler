@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:all_in_one_scheduler/pages/alarm_page.dart';
 import 'package:all_in_one_scheduler/services/alarm/alarm.dart';
 import 'package:all_in_one_scheduler/services/alarm/quiz_type.dart';
 import 'package:all_in_one_scheduler/services/firestore_service.dart';
@@ -17,7 +18,6 @@ class MyPage extends StatefulWidget {
 
 class _MyPageState extends State<MyPage> {
   User? _user;
-  late final List<Alarm> _sampleAlarms;
   final FirestoreService _firestoreService = FirestoreService();
 
   @override
@@ -79,7 +79,7 @@ class _MyPageState extends State<MyPage> {
     });
   }
 
-  // 알람 데이터를 Firestore에 저장하는 함수 (서비스 호출)
+  /* 알람 데이터를 Firestore에 저장하는 함수 (서비스 호출)
   Future<void> _saveAlarms() async {
     final user = _user;
     if (user == null) {
@@ -91,7 +91,7 @@ class _MyPageState extends State<MyPage> {
 
     try {
       // FirestoreService를 통해 데이터 저장
-      await _firestoreService.saveAlarms(user, _sampleAlarms);
+      await _firestoreService.saveAlarms(user, );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('알람 목록이 개인 서버에 성공적으로 저장되었습니다!')),
@@ -103,7 +103,7 @@ class _MyPageState extends State<MyPage> {
         SnackBar(content: Text('알람 저장 실패: $e')),
       );
     }
-  }
+  }*/
 
   @override
   Widget build(BuildContext context){
@@ -132,15 +132,15 @@ class _MyPageState extends State<MyPage> {
                 style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 20),
             // 알람 저장 버튼
-            ElevatedButton.icon(
+            /*ElevatedButton.icon(
               icon: const Icon(Icons.cloud_upload),
               label: const Text("알람 목록 서버에 저장하기 (샘플)"),
-              onPressed: _saveAlarms,
+              onPressed: pass,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.indigo,
                 foregroundColor: Colors.white,
               ),
-            ),
+            ),*/
             ElevatedButton.icon(
               icon: const Icon(Icons.logout),
               label: const Text("로그아웃"),

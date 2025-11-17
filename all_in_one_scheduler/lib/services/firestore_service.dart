@@ -34,8 +34,9 @@ class FirestoreService {
       // Firestore가 자동 ID를 생성합니다. (add()와 유사하게 동작)
       // 또는 add()를 사용해도 됩니다. 여기서는 set(doc()) 방식을 사용했습니다.
       batch.set(alarmCollectionRef.doc(), alarm.toJson());
+      print(alarmCollectionRef.doc());
     }
-
+    print("firestore_service: 총 ${alarms.length}개의 알람을 저장했습니다.");
     // 3. 배치 작업을 커밋 (실행)
     await batch.commit();
   }
@@ -53,6 +54,7 @@ class FirestoreService {
       final querySnapshot = await alarmCollectionRef.get();
 
       // 문서 리스트를 Alarm 객체 리스트로 변환 (fromJson을 통해 역변환)
+      print("firestore_service: 총 ${querySnapshot.docs.length}개의 알람을 불러왔습니다.");
       return querySnapshot.docs
           .map((doc) => Alarm.fromJson(doc.data() as Map<String, dynamic>))
           .toList();
