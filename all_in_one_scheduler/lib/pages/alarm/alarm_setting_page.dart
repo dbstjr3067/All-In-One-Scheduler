@@ -1,5 +1,3 @@
-import 'dart:ui_web';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:all_in_one_scheduler/services/alarm/alarm.dart';
@@ -278,58 +276,104 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
     required int maxValue,
     required Function(int) onChanged,
   }) {
-    int prevValue = (value - 1 + maxValue) % maxValue;
-    int nextValue = (value + 1) % maxValue;
+    // 무한 스크롤을 위한 큰 초기 인덱스
+    final int itemCount = 10000;
+    final int initialIndex = itemCount ~/ 2 + value;
+
+    final FixedExtentScrollController scrollController =
+    FixedExtentScrollController(initialItem: initialIndex);
+
     return SizedBox(
       width: 105,
       height: 315,
-      child: GestureDetector(
-        onVerticalDragUpdate: (details) {
-          if (details.delta.dy < -10) {
-            onChanged((value + 1) % maxValue);
-          } else if (details.delta.dy > 10) {
-            onChanged((value - 1 + maxValue) % maxValue);
-          }
-        },
-        child: Container(
-          color: Colors.transparent,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                prevValue.toString().padLeft(2, '0'),
-                style: const TextStyle(
-                  fontSize: 49,
-                  fontWeight: FontWeight.w300,
-                  color: Color(0xFF9B8BB8),
-                ),
+      child: Stack(
+        children: [
+          // ListWheelScrollView로 부드러운 스크롤
+          NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollEndNotification) {
+                final int centerIndex = scrollController.selectedItem;
+                final int newValue = centerIndex % maxValue;
+                if (newValue != value) {
+                  onChanged(newValue);
+                }
+              }
+              return true;
+            },
+            child: ListWheelScrollView.useDelegate(
+              controller: scrollController,
+              itemExtent: 91, // 각 아이템 높이 (49 + 21 + 21)
+              diameterRatio: 2.0,
+              perspective: 0.003,
+              physics: const FixedExtentScrollPhysics(),
+              squeeze: 1.0, // 아이템 간격 조절
+              useMagnifier: false, // 확대 효과 끄기
+              magnification: 1.0,
+              onSelectedItemChanged: (index) {
+                final int newValue = index % maxValue;
+                if (newValue != value) {
+                  onChanged(newValue);
+                }
+              },
+              childDelegate: ListWheelChildLoopingListDelegate(
+                children: List.generate(maxValue, (index) {
+                  return Center(
+                    child: Text(
+                      index.toString().padLeft(2, '0'),
+                      style: const TextStyle(
+                        fontSize: 70,
+                        fontWeight: FontWeight.w300,
+                        color: Colors.transparent, // 투명하게 (오버레이로 표시)
+                      ),
+                    ),
+                  );
+                }),
               ),
-              const SizedBox(height: 21),
-              GestureDetector(
-                onTap: () {
-                  _showKeyboard(context, value, maxValue, onChanged);
-                },
-                child: Text(
-                  value.toString().padLeft(2, '0'),
+            ),
+          ),
+          // 고정된 숫자 표시 오버레이
+          IgnorePointer(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // 위쪽 숫자
+                Text(
+                  ((value - 1 + maxValue) % maxValue).toString().padLeft(2, '0'),
                   style: const TextStyle(
-                    fontSize: 70,
+                    fontSize: 49,
                     fontWeight: FontWeight.w300,
-                    color: Colors.white,
+                    color: Color(0xFF9B8BB8),
                   ),
                 ),
-              ),
-              const SizedBox(height: 21),
-              Text(
-                nextValue.toString().padLeft(2, '0'),
-                style: const TextStyle(
-                  fontSize: 49,
-                  fontWeight: FontWeight.w300,
-                  color: Color(0xFF9B8BB8),
+                const SizedBox(height: 21),
+                // 가운데 숫자 (클릭 가능)
+                GestureDetector(
+                  onTap: () {
+                    _showKeyboard(context, value, maxValue, onChanged);
+                  },
+                  child: Text(
+                    value.toString().padLeft(2, '0'),
+                    style: const TextStyle(
+                      fontSize: 70,
+                      fontWeight: FontWeight.w300,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 21),
+                // 아래쪽 숫자
+                Text(
+                  ((value + 1) % maxValue).toString().padLeft(2, '0'),
+                  style: const TextStyle(
+                    fontSize: 49,
+                    fontWeight: FontWeight.w300,
+                    color: Color(0xFF9B8BB8),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; //로컬 저장
+import 'dart:convert'; // JSON 인코딩/디코딩용
 import 'package:all_in_one_scheduler/services/alarm/alarm.dart';
 import 'package:all_in_one_scheduler/services/alarm/quiz_type.dart';
 
@@ -14,12 +17,60 @@ class AlarmPage extends StatefulWidget {
 }
 
 class _AlarmPageState extends State<AlarmPage> {
-  // 하드코딩된 알람 리스트
-  late List<Alarm> _alarms = [];
-  
+  List<Alarm> _alarms = [];
   // scheduler_page.dart의 스타일을 참고한 배경색
   static const Color _cardColor = Color(0xFFEBEBFF); // 연한 보라색 계열
+  //SharedPreference 키
+  static const String _alarmsKey = 'saved_alarms';
 
+  @override
+  void initState() {
+    super.initState();
+    _loadAlarmsFromLocal(); // 앱 시작 시 로컬에서 알람 불러오기
+  }
+  Future<void> _loadAlarmsFromLocal() async { //로컬에서 알람 불러오기
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? alarmsJson = prefs.getString(_alarmsKey);
+
+      if (alarmsJson != null && alarmsJson.isNotEmpty) {
+        // JSON 문자열을 List<dynamic>으로 디코딩
+        final List<dynamic> decoded = jsonDecode(alarmsJson);
+
+        // List<dynamic>을 List<Alarm>으로 변환
+        setState(() {
+          _alarms = decoded
+              .map((json) => Alarm.fromJson(json as Map<String, dynamic>))
+              .toList();
+        });
+
+        print('alarm_page: 로컬에서 ${_alarms.length}개의 알람을 불러왔습니다.');
+      } else {
+        print('alarm_page: 저장된 알람이 없습니다.');
+      }
+    } catch (e) {
+      print('alarm_page: 알람 불러오기 실패: $e');
+    }
+  }
+  Future<void> _saveAlarmsToLocal() async { //로컬에 알람 저장하기
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // List<Alarm>을 List<Map>으로 변환
+      final List<Map<String, dynamic>> alarmsMap =
+      _alarms.map((alarm) => alarm.toJson()).toList();
+
+      // JSON 문자열로 인코딩
+      final String alarmsJson = jsonEncode(alarmsMap);
+
+      // SharedPreferences에 저장
+      await prefs.setString(_alarmsKey, alarmsJson);
+
+      print('alarm_page: ${_alarms.length}개의 알람을 로컬에 저장했습니다.');
+    } catch (e) {
+      print('alarm_page: 알람 저장 실패: $e');
+    }
+  }
   // 알람 설정 페이지를 Full-Screen Modal로 띄우는 함수
   void _showAlarmSettings({Alarm? alarmToEdit, int? index}) {
     Navigator.push(
@@ -55,6 +106,8 @@ class _AlarmPageState extends State<AlarmPage> {
               const SnackBar(content: Text('알람이 삭제되었습니다.')),
             );
           }
+          //변경사항을 로컬에 저장
+          _saveAlarmsToLocal();
         });
       }
     });

@@ -92,7 +92,10 @@ class Alarm {
   Map<String, dynamic> toJson() {
     return {
       'repeatDays': repeatDays,
-      'alarmTime': _timeOfDayToTimestamp(alarmTime),
+      'alarmTime': {
+        'hour': alarmTime.hour,
+        'minute': alarmTime.minute,
+      },
       'isEnabled': isEnabled,
       'soundAsset': soundAsset,
       'quizSetting': {
@@ -105,11 +108,11 @@ class Alarm {
 
   // Map<String, dynamic>을 Alarm 객체로 변환 (데이터 로드 시 유용)
   factory Alarm.fromJson(Map<String, dynamic> json) {
-    final Timestamp timestamp = json['alarmTime'] as Timestamp;
-    final DateTime dt = timestamp.toDate();
-    final timeOfDay = TimeOfDay.fromDateTime(dt);
     return Alarm(
-      alarmTime: timeOfDay,
+      alarmTime: TimeOfDay(
+        hour: json['alarmTime']['hour'] as int,
+        minute: json['alarmTime']['minute'] as int,
+      ),
       repeatDays: List<int>.from(json['repeatDays']),
       isEnabled: json['isEnabled'],
       soundAsset: json['soundAsset'],
