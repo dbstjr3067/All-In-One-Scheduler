@@ -57,7 +57,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
       print('scheduler_page: 스케쥴 불러오기 실패: $e');
     }
   }
-  
+
   Future<void> _saveSchedulesToLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -111,158 +111,175 @@ class _SchedulerPageState extends State<SchedulerPage> {
     ];
     return months[month - 1];
   }
+
   Future<DateTime> getSelectedDate() async {
     return selectedDate;
   }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              color: const Color(0xFFD4D4E8),
-              padding: const EdgeInsets.all(16),
-              child: const Align(
-                alignment: Alignment.bottomLeft,
-                child: Text(
-                  '캘린더',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            color: const Color(0xFFD4D4E8),
+            padding: const EdgeInsets.all(16),
+            child: const Align(
+              alignment: Alignment.bottomLeft,
+              child: Text(
+                '캘린더',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
             ),
+          ),
 
-            // Calendar Section
-            Container( //20xx년 xx월 < > 화면
-              color: const Color(0xFFFFFBF5),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+          // Scrollable Content
+          Expanded(
+            child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Month Navigation
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${displayMonth.year}년 ${getMonthName(displayMonth.month)}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                  // Calendar Section
+                  Container(
+                    color: const Color(0xFFFFFBF5),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
+                    child: Column(
+                      children: [
+                        // Month Navigation
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${displayMonth.year}년 ${getMonthName(displayMonth.month)}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.chevron_left),
+                                  onPressed: () {
+                                    setState(() {
+                                      displayMonth = DateTime(
+                                        displayMonth.year,
+                                        displayMonth.month - 1,
+                                      );
+                                      selectedDate = DateTime(displayMonth.year, displayMonth.month, 1);
+                                    });
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.chevron_right),
+                                  onPressed: () {
+                                    setState(() {
+                                      displayMonth = DateTime(
+                                        displayMonth.year,
+                                        displayMonth.month + 1,
+                                      );
+                                      selectedDate = DateTime(displayMonth.year, displayMonth.month, 1);
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.chevron_left),
-                            onPressed: () {
-                              setState(() {
-                                displayMonth = DateTime(
-                                  displayMonth.year,
-                                  displayMonth.month - 1,
-                                );
-                                selectedDate = DateTime(displayMonth.year, displayMonth.month, 1);
-                              });
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.chevron_right),
-                            onPressed: () {
-                              setState(() {
-                                displayMonth = DateTime(
-                                  displayMonth.year,
-                                  displayMonth.month + 1,
-                                );
-                                selectedDate = DateTime(displayMonth.year, displayMonth.month, 1);
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+
+                        const SizedBox(height: 16),
+
+                        // Weekday Headers
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: ['월', '화', '수', '목', '금', '토', '일']
+                              .map((day) => SizedBox(
+                            width: 45,
+                            child: Center(
+                              child: Text(
+                                day,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ))
+                              .toList(),
+                        ),
+
+                        const SizedBox(height: 1),
+
+                        // Calendar Grid
+                        _buildCalendarGrid(),
+                      ],
+                    ),
                   ),
 
-                  const SizedBox(height: 16),
-
-                  // Weekday Headers
-                  Row( //월 화 수 ... 일 화면
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: ['월', '화', '수', '목', '금', '토', '일']
-                        .map((day) => SizedBox(
-                      width: 45,
-                      child: Center(
-                        child: Text(
-                          day,
+                  // Time Selector
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '일정 추가하기',
                           style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    ))
-                        .toList(),
+                        IconButton(
+                          icon: Icon(
+                            Icons.add_circle_outline,
+                            size: 32,
+                          ),
+                          color: Colors.black,
+                          onPressed: () {
+                            _showScheduleSettings();
+                          },
+                        ),
+                      ],
+                    ),
                   ),
 
-                  const SizedBox(height: 1),
+                  // Schedule List
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      children: _schedules.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final schedule = entry.value;
+                        return GestureDetector(
+                          onTap: () => _showScheduleSettings(scheduleToEdit: schedule, index: index),
+                          child: Padding(
+                            padding: EdgeInsets.only(bottom: screenWidth * 0.04),
+                            child: _buildScheduleItem(
+                              title: schedule.title,
+                              time: schedule.formattedTime,
+                              screenWidth: screenWidth,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
 
-                  // Calendar Grid
-                  _buildCalendarGrid(),
+                  // Bottom padding for last item
+                  SizedBox(height: 20),
                 ],
               ),
             ),
-
-            // Time Selector
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    '일정 추가하기',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.add_circle_outline,
-                      size: 32,
-                    ),
-                    color: Colors.black,
-                    onPressed: () {
-                      _showScheduleSettings();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Column(
-                children: _schedules.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final schedule = entry.value;
-                  return GestureDetector(
-                    onTap: () => _showScheduleSettings(scheduleToEdit: schedule, index: index),
-                    child: Padding(
-                      padding: EdgeInsets.only(bottom: screenWidth * 0.04),
-                      child: _buildScheduleItem(
-                        title: schedule.title,
-                        time: schedule.formattedTime,
-                        screenWidth: screenWidth,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -366,7 +383,6 @@ class _SchedulerPageState extends State<SchedulerPage> {
     final firstDayOfMonth = DateTime(displayMonth.year, displayMonth.month, 1);
     final lastDayOfMonth = DateTime(
         displayMonth.year, displayMonth.month + 1, 0);
-    // weekday: 1=월, 7=일. For MON-SUN layout, use (weekday - 1)
     final firstWeekday = firstDayOfMonth.weekday - 1;
 
     List<Widget> dayWidgets = [];
