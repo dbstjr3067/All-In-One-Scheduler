@@ -161,17 +161,14 @@ class _AlarmPageState extends State<AlarmPage> {
             // Header
             Container(
               color: const Color(0xFFD4D4E8),
-              padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.04,
-                vertical: screenWidth * 0.03,
-              ),
+              padding: EdgeInsets.all(16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     '알람',
                     style: TextStyle(
-                      fontSize: screenWidth * 0.08,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),

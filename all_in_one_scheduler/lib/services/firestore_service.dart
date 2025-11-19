@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:all_in_one_scheduler/services/alarm/alarm.dart'; // Alarm 모델 import
+import 'package:all_in_one_scheduler/services/schedule/schedule.dart'; // Schedule 모델 import
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -57,6 +58,53 @@ class FirestoreService {
       print("firestore_service: 총 ${querySnapshot.docs.length}개의 알람을 불러왔습니다.");
       return querySnapshot.docs
           .map((doc) => Alarm.fromJson(doc.data() as Map<String, dynamic>))
+          .toList();
+
+    } catch (e) {
+      print("FirestoreService: 알람 로드 오류: $e");
+      return [];
+    }
+  }
+
+  Future<void> saveSchedules(User user, List<Schedule> schedules) async {
+    final CollectionReference scheduleCollectionRef = _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('schedules');
+
+    WriteBatch batch = _db.batch();
+
+    try {
+      final existingDocs = await scheduleCollectionRef.get();
+      for (var doc in existingDocs.docs) {
+        batch.delete(doc.reference);
+      }
+    } catch (e) {
+      print("FirestoreService: 기존 알람 삭제 중 오류: $e");
+    }
+
+    for (final schedule in schedules) {
+      batch.set(scheduleCollectionRef.doc(), schedule.toJson());
+      print(scheduleCollectionRef.doc());
+    }
+    print("firestore_service: 총 ${schedules.length}개의 스케쥴을 저장했습니다.");
+    await batch.commit();
+  }
+
+  Future<List<Schedule>> loadSchedules(User user) async {
+    try {
+      final CollectionReference scheduleCollectionRef = _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('schedules');
+
+      // 컬렉션 전체를 가져옵니다.
+      final querySnapshot = await scheduleCollectionRef.get();
+
+      // 문서 리스트를 Alarm 객체 리스트로 변환 (fromJson을 통해 역변환)
+      print("firestore_service: 총 ${querySnapshot.docs.length}개의 알람을 불러왔습니다.");
+      return querySnapshot.docs
+          .map((doc) => Schedule.fromJson(doc.data() as Map<String, dynamic>))
           .toList();
 
     } catch (e) {
