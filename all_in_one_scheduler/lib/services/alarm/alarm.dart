@@ -71,7 +71,7 @@ class Alarm {
       final now = DateTime.now();
       final tomorrow = DateTime.now().add(Duration(days: 1));
       final days = ['월', '화', '수', '목', '금', '토', '일'];
-      if(DateTime.now().hour < alarmTime.hour || DateTime.now().hour == alarmTime.hour && DateTime.now().minute > alarmTime.minute) {
+      if(DateTime.now().hour < alarmTime.hour || DateTime.now().hour == alarmTime.hour && DateTime.now().minute < alarmTime.minute) {
         final formatter = DateFormat('M월 d일');
         final weekday = days[now.weekday - 1]; // DateTime.weekday는 1(월)~7(일)
         return '오늘 - ${formatter.format(now)} ($weekday)';

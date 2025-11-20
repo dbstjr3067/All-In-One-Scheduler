@@ -43,17 +43,34 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-  final List<Widget> _pages = const [
+  /*final List<Widget> _pages = const [
     ReminderPage(),
     SchedulerPage(),
     StatisticsPage(),
     AlarmPage(),
     MyPage()
-  ];
+  ];*/
+  final GlobalKey<ReminderPageState> _reminderPageKey = GlobalKey();
+
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
+
+    void handleScheduleDeletion(String title) {
+      // Key를 사용하여 ReminderPage의 public 함수를 호출합니다.
+      _reminderPageKey.currentState?.deleteCompletionByTitle(title);
+    }
+
+    _pages = [
+      ReminderPage(key: _reminderPageKey), // ReminderPage에 Key 할당
+      SchedulerPage(onScheduleDeleted: handleScheduleDeletion), // SchedulerPage에 콜백 전달
+      const StatisticsPage(),
+      const AlarmPage(),
+      const MyPage()
+    ];
+
     platform.setMethodCallHandler((call) async {
       if (call.method == "fromUnlock") {
         debugPrint("언락 메시지 받았음");

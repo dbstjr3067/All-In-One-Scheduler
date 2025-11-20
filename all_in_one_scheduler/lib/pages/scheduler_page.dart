@@ -7,7 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:all_in_one_scheduler/services/firestore_service.dart';
 
 class SchedulerPage extends StatefulWidget {
-  const SchedulerPage({Key? key}) : super(key: key);
+  final Function(String title)? onScheduleDeleted;
+
+  const SchedulerPage({Key? key, this.onScheduleDeleted}) : super(key: key);
 
   @override
   State<SchedulerPage> createState() => _SchedulerPageState();
@@ -15,6 +17,7 @@ class SchedulerPage extends StatefulWidget {
 
 class _SchedulerPageState extends State<SchedulerPage> {
   List<Schedule> _schedules = [];
+  List<Schedule> _filteredSchedules = [];
   static const Color _cardColor = Color(0xFFEBEBFF);
   static const String _schedulesKey = 'saved_schedules';
   late DateTime selectedDate;
@@ -48,13 +51,14 @@ class _SchedulerPageState extends State<SchedulerPage> {
           _schedules = decoded
               .map((json) => Schedule.fromJson(json as Map<String, dynamic>))
               .toList();
+          _filterSchedulesForSelectedDate();
         });
-        print('scheduler_page: 로컬에서 ${_schedules.length}개의 스케쥴을 불러왔습니다.');
+        print('scheduler_page: 로컬에서 ${_schedules.length}개의 스케줄을 불러왔습니다.');
       } else {
-        print('scheduler_page: 저장된 스케쥴이 없습니다.');
+        print('scheduler_page: 저장된 스케줄이 없습니다.');
       }
     } catch (e) {
-      print('scheduler_page: 스케쥴 불러오기 실패: $e');
+      print('scheduler_page: 스케줄 불러오기 실패: $e');
     }
   }
 
@@ -65,16 +69,16 @@ class _SchedulerPageState extends State<SchedulerPage> {
       _schedules.map((alarm) => alarm.toJson()).toList();
       final String alarmsJson = jsonEncode(alarmsMap);
       await prefs.setString(_schedulesKey, alarmsJson);
-      print('schedule_page: ${_schedules.length}개의 스케쥴을 로컬에 저장했습니다.');
+      print('schedule_page: ${_schedules.length}개의 스케줄을 로컬에 저장했습니다.');
     } catch (e) {
-      print('schedule_page: 스케쥴 저장 실패: $e');
+      print('schedule_page: 스케줄 저장 실패: $e');
     }
   }
 
   Future<void> _loadSchedulesFromFirestore() async {
     final User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print('schedule_page: Firestore 스케쥴을 로드하려면 로그인이 필요합니다.');
+      print('schedule_page: Firestore 스케줄을 로드하려면 로그인이 필요합니다.');
       return;
     }
 
@@ -84,24 +88,75 @@ class _SchedulerPageState extends State<SchedulerPage> {
       if (firestoreSchedules.isNotEmpty) {
         setState(() {
           _schedules = firestoreSchedules;
+          _filterSchedulesForSelectedDate();
         });
-        print('schedule_page: Firestore에서 ${_schedules.length}개의 스케쥴을 성공적으로 불러왔습니다.');
+        print('schedule_page: Firestore에서 ${_schedules.length}개의 스케줄을 성공적으로 불러왔습니다.');
         _saveSchedulesToLocal();
       } else {
-        print('schedule_page: Firestore에 저장된 스케쥴이 없습니다.');
+        print('schedule_page: Firestore에 저장된 스케줄이 없습니다.');
       }
     } catch (e) {
-      print('schedule_page: Firestore 스케쥴 로드 실패: $e');
+      print('schedule_page: Firestore 스케줄 로드 실패: $e');
     }
   }
 
   Future<void> _saveSchedulesToFirestore(User user) async {
     try {
       await _firestoreService.saveSchedules(user, _schedules);
-      print('schedule_page: ${_schedules.length}개의 스케쥴 목록을 Firestore에 성공적으로 저장했습니다.');
+      print('schedule_page: ${_schedules.length}개의 스케줄 목록을 Firestore에 성공적으로 저장했습니다.');
     } catch (e) {
-      print('schedule_page: 스케쥴 목록 Firestore 저장 실패: $e');
+      print('schedule_page: 스케줄 목록 Firestore 저장 실패: $e');
     }
+  }
+
+  // 선택된 날짜의 스케줄만 필터링
+  void _filterSchedulesForSelectedDate() {
+    setState(() {
+      _filteredSchedules = _schedules.where((schedule) {
+        if (schedule.startTime == null) return false;
+
+        final scheduleDate = schedule.startTime!.toDate();
+
+        if (schedule.isRecurring) {
+          // 매주 반복: 요일이 같고, 시작일이 선택한 날짜 이전이면 표시
+          return scheduleDate.weekday == selectedDate.weekday &&
+              scheduleDate.isBefore(selectedDate.add(Duration(days: 1)));
+        } else {
+          // 일회성: 정확히 같은 날짜
+          return scheduleDate.year == selectedDate.year &&
+              scheduleDate.month == selectedDate.month &&
+              scheduleDate.day == selectedDate.day;
+        }
+      }).toList();
+
+      // 시간순 정렬
+      _filteredSchedules.sort((a, b) {
+        if (a.startTime == null && b.startTime == null) return 0;
+        if (a.startTime == null) return 1;
+        if (b.startTime == null) return -1;
+        return a.startTime!.compareTo(b.startTime!);
+      });
+    });
+  }
+
+  // 특정 날짜에 스케줄이 있는지 확인
+  bool _hasScheduleOnDate(DateTime date) {
+    return _schedules.any((schedule) {
+      if (schedule.startTime == null) return false;
+
+      final scheduleDate = schedule.startTime!.toDate();
+
+      if (schedule.isRecurring) {
+        // 매주 반복: 요일이 같고, 시작일이 해당 날짜 이전
+        return scheduleDate.weekday == date.weekday &&
+            scheduleDate.isBefore(date.add(Duration(days: 1)));
+      } else {
+        // 일회성: 정확히 같은 날짜
+        return scheduleDate.year == date.year &&
+            scheduleDate.month == date.month &&
+            scheduleDate.day == date.day;
+      }
+    });
   }
 
   String getMonthName(int month) {
@@ -173,6 +228,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
                                         displayMonth.month - 1,
                                       );
                                       selectedDate = DateTime(displayMonth.year, displayMonth.month, 1);
+                                      _filterSchedulesForSelectedDate();
                                     });
                                   },
                                 ),
@@ -185,6 +241,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
                                         displayMonth.month + 1,
                                       );
                                       selectedDate = DateTime(displayMonth.year, displayMonth.month, 1);
+                                      _filterSchedulesForSelectedDate();
                                     });
                                   },
                                 ),
@@ -250,15 +307,40 @@ class _SchedulerPageState extends State<SchedulerPage> {
                     ),
                   ),
 
-                  // Schedule List
-                  Padding(
+                  // Schedule List (필터링된 스케줄만 표시)
+                  _filteredSchedules.isEmpty
+                      ? Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 64,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '이 날짜에 일정이 없습니다',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                      : Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
-                      children: _schedules.asMap().entries.map((entry) {
-                        final index = entry.key;
+                      children: _filteredSchedules.asMap().entries.map((entry) {
                         final schedule = entry.value;
+                        final originalIndex = _schedules.indexOf(schedule);
+
                         return GestureDetector(
-                          onTap: () => _showScheduleSettings(scheduleToEdit: schedule, index: index),
+                          onTap: () => _showScheduleSettings(
+                              scheduleToEdit: schedule,
+                              index: originalIndex
+                          ),
                           child: Padding(
                             padding: EdgeInsets.only(bottom: screenWidth * 0.04),
                             child: _buildScheduleItem(
@@ -291,7 +373,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: screenWidth * 0.05,
-        vertical: screenWidth * 0.045,
+        vertical: screenWidth * 0.025,
       ),
       decoration: BoxDecoration(
         color: _cardColor,
@@ -312,7 +394,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                // 스케쥴 제목
+                // 스케줄 제목
                 Text(
                   title,
                   style: TextStyle(
@@ -321,7 +403,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
                     color: Colors.black,
                   ),
                 ),
-                SizedBox(height: screenWidth * 0.04),
+                SizedBox(height: screenWidth * 0.01),
                 // 시작 시간
                 Text(
                   time,
@@ -357,20 +439,25 @@ class _SchedulerPageState extends State<SchedulerPage> {
           if (index != null) {
             _schedules[index] = result;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('스케쥴이 수정되었습니다.')),
+              const SnackBar(content: Text('스케줄이 수정되었습니다.')),
             );
           } else {
             _schedules.add(result);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('새 스케쥴이 추가되었습니다.')),
+              const SnackBar(content: Text('새 스케줄이 추가되었습니다.')),
             );
           }
         } else if (result == 'delete' && index != null) {
+          final deletedTitle = _schedules[index].title;
           _schedules.removeAt(index);
+          if (widget.onScheduleDeleted != null) {
+            widget.onScheduleDeleted!(deletedTitle);
+          }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('스케쥴이 삭제되었습니다.')),
+            const SnackBar(content: Text('스케줄이 삭제되었습니다.')),
           );
         }
+        _filterSchedulesForSelectedDate();
         _saveSchedulesToLocal();
         final User? user = FirebaseAuth.instance.currentUser;
         if(user != null)
@@ -398,12 +485,14 @@ class _SchedulerPageState extends State<SchedulerPage> {
       final isSelected = selectedDate.year == date.year &&
           selectedDate.month == date.month &&
           selectedDate.day == date.day;
+      final hasSchedule = _hasScheduleOnDate(date);
 
       dayWidgets.add(
         GestureDetector(
           onTap: () {
             setState(() {
               selectedDate = date;
+              _filterSchedulesForSelectedDate();
             });
           },
           child: AnimatedContainer(
@@ -414,6 +503,12 @@ class _SchedulerPageState extends State<SchedulerPage> {
             decoration: BoxDecoration(
               color: isSelected ? const Color(0xFFD4D4E8) : Colors.transparent,
               shape: BoxShape.circle,
+              border: hasSchedule && !isSelected
+                  ? Border.all(
+                color: const Color(0xFF7C6FDB),
+                width: 2,
+              )
+                  : null,
             ),
             child: Center(
               child: AnimatedDefaultTextStyle(

@@ -471,7 +471,7 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
     if (selectedCount == 0) {
       final now = DateTime.now();
       final tomorrow = DateTime.now().add(Duration(days: 1));
-      if (DateTime.now().hour < selectedHour || DateTime.now().hour == selectedHour && DateTime.now().minute > selectedMinute) {
+      if (DateTime.now().hour < selectedHour || DateTime.now().hour == selectedHour && DateTime.now().minute < selectedMinute) {
         final formatter = DateFormat('M월 d일');
         final weekday = days[now.weekday - 1];
         repeatText = '오늘 - ${formatter.format(now)} ($weekday)';
