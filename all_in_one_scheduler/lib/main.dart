@@ -59,8 +59,13 @@ class _HomePageState extends State<HomePage> {
     super.initState();
 
     void handleScheduleDeletion(String title) {
-      // Key를 사용하여 ReminderPage의 public 함수를 호출합니다.
-      _reminderPageKey.currentState?.deleteCompletionByTitle(title);
+      if (_reminderPageKey.currentState == null) {
+        print('DEBUG ERROR: ReminderPageState의 currentState가 NULL입니다. (아직 빌드되지 않았거나 메모리에서 제거됨)');
+      } else {
+        print('DEBUG SUCCESS: ReminderPageState의 currentState 접근 성공. 함수 호출 시도.');
+        // Key를 사용하여 ReminderPage의 public 함수를 호출합니다.
+        _reminderPageKey.currentState?.deleteCompletionByTitle(title);
+      }
     }
 
     _pages = [
@@ -90,7 +95,10 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context){
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages
+      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed, // 4개 이상이면 이게 필요
         currentIndex: _selectedIndex,

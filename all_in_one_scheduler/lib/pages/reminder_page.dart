@@ -14,7 +14,7 @@ class ReminderPage extends StatefulWidget {
   State<ReminderPage> createState() => ReminderPageState();
 }
 
-class ReminderPageState extends State<ReminderPage> {
+class ReminderPageState extends State<ReminderPage> with AutomaticKeepAliveClientMixin {
   List<Schedule> _allSchedules = [];
   List<Schedule> _todaySchedules = [];
   List<Completion> _completions = [];
@@ -26,6 +26,10 @@ class ReminderPageState extends State<ReminderPage> {
 
   late DateTime _selectedDate;
 
+  // AutomaticKeepAliveClientMixin 필수 오버라이드
+  @override
+  bool get wantKeepAlive => true;
+
   // 오늘 날짜의 자정(00:00:00)을 반환하는 Getter
   DateTime get _todayMidnight {
     final now = DateTime.now();
@@ -36,12 +40,13 @@ class ReminderPageState extends State<ReminderPage> {
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
-    _loadSchedules();
+    print('reminder_page: 이닛스테이트');
     final User? user = FirebaseAuth.instance.currentUser;
     if(user != null)
       _loadCompletionsFromFirestore();
     else
       _loadCompletionsFromLocal();
+    _loadSchedules();
     _filterCompletionsForToday();
   }
 
@@ -56,6 +61,7 @@ class ReminderPageState extends State<ReminderPage> {
       // Firestore에서 로드
       try {
         allSchedules = await _firestoreService.loadSchedules(user);
+        print('reminder_page: Firestore에서 ${allSchedules.length}개의 스케줄 로드');
       } catch (e) {
         print('reminder_page: Firestore 로드 실패: $e');
       }
@@ -72,6 +78,7 @@ class ReminderPageState extends State<ReminderPage> {
           allSchedules = decoded
               .map((json) => Schedule.fromJson(json as Map<String, dynamic>))
               .toList();
+          print('reminder_page: 로컬에서 ${allSchedules.length}개의 스케줄 로드');
         }
       } catch (e) {
         print('reminder_page: 로컬 로드 실패: $e');
@@ -131,6 +138,7 @@ class ReminderPageState extends State<ReminderPage> {
         DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day)
     );
 
+    // 1단계: 오늘의 스케줄에 대해 Completion 생성/업데이트
     for (var schedule in _todaySchedules) {
       // 이미 해당 제목의 Completion이 있는지 확인
       final existingCompletion = _completions.firstWhere(
@@ -174,15 +182,37 @@ class ReminderPageState extends State<ReminderPage> {
         }
       }
     }
+
+    // 2단계: 스케줄이 없는 Completion 제거
+    // _allSchedules에 존재하지 않는 제목의 Completion을 찾아서 삭제
+    final schedulesTitles = _allSchedules.map((s) => s.title).toSet();
+    final completionsToRemove = <Completion>[];
+
+    for (var completion in _completions) {
+      if (!schedulesTitles.contains(completion.title)) {
+        completionsToRemove.add(completion);
+        print('reminder_page: 스케줄이 없는 Completion 발견: "${completion.title}"');
+      }
+    }
+
+    if (completionsToRemove.isNotEmpty) {
+      setState(() {
+        _completions.removeWhere((c) => completionsToRemove.contains(c));
+      });
+      isChangeExist = true;
+      print('reminder_page: ${completionsToRemove.length}개의 Completion 삭제됨');
+    }
+
     if(isChangeExist){
+      print('reminder_page: 변경사항발견');
       // Completion 저장 (로컬 + Firestore)
       _saveCompletionsToLocal();
       final User? user = FirebaseAuth.instance.currentUser;
       if(user != null)
         _saveCompletionsToFirestore(user);
-      // 오늘 날짜의 Completion만 필터링
-
     }
+
+    // 오늘 날짜의 Completion만 필터링
     _filterCompletionsForToday();
   }
 
@@ -310,39 +340,55 @@ class ReminderPageState extends State<ReminderPage> {
   Future<void> _loadCompletionsFromFirestore() async {
     final User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print('schedule_page: Firestore 스케줄을 로드하려면 로그인이 필요합니다.');
+      print('reminder_page: Firestore 스케줄을 로드하려면 로그인이 필요합니다.');
       return;
     }
     try {
       final List<Completion> firestoreCompletions = await _firestoreService.loadCompletions(user);
-      if (firestoreCompletions.isNotEmpty) {
-        setState(() {
-          _completions = firestoreCompletions;
-          _filterCompletionsForToday();
-        });
-        print('reminder_page: Firestore에서 ${_completions.length}개의 completion을 성공적으로 불러왔습니다.');
-        _saveCompletionsToLocal();
-      } else {
-        print('reminder_page: Firestore에 저장된 completion이 없습니다.');
-      }
+
+      setState(() {
+        // Firestore 데이터로 완전히 교체
+        _completions = firestoreCompletions;
+        _filterCompletionsForToday();
+      });
+
+      print('reminder_page: Firestore에서 ${_completions.length}개의 completion을 성공적으로 불러왔습니다.');
+
+      // 로컬에도 Firestore 데이터로 덮어쓰기
+      _saveCompletionsToLocal();
+
     } catch (e) {
       print('reminder_page: Firestore Completion 로드 실패: $e');
     }
 
     return;
   }
-  //==================스케쥴이 삭제될 때 연결된 completion도 삭제===============
+
+  //================== 스케줄이 삭제될 때 연결된 completion도 삭제 ===============
   void deleteCompletionByTitle(String title) {
+    print('reminder_page: deleteCompletionByTitle 호출됨 - title: $title');
+
     setState(() {
+      // Completion 삭제
       _completions.removeWhere((completion) => completion.title == title);
+
+      // _allSchedules에서도 삭제
+      _allSchedules.removeWhere((schedule) => schedule.title == title);
     });
+
+    // 화면 새로고침
+    _filterSchedulesForDate();
+
+    // 저장
     _saveCompletionsToLocal();
     final User? user = FirebaseAuth.instance.currentUser;
     if(user != null) {
       _saveCompletionsToFirestore(user);
     }
-    print('reminder_page: "$title" 제목의 Completion을 삭제했습니다.');
+
+    print('reminder_page: "$title" 제목의 Schedule과 Completion을 삭제했습니다.');
   }
+
   // ==================== 날짜 관련 함수 ====================
 
   String _getWeekdayName(int weekday) {
@@ -384,6 +430,8 @@ class ReminderPageState extends State<ReminderPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin 필수 호출
+
     final screenWidth = MediaQuery.of(context).size.width;
 
     // 선택된 날짜가 오늘인지 확인하는 변수
