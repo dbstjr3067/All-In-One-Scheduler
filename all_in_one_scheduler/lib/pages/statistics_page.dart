@@ -12,10 +12,10 @@ class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
 
   @override
-  State<StatisticsPage> createState() => StatisticsPageState();
+  State<StatisticsPage> createState() => _StatisticsPageState();
 }
 
-class StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveClientMixin {
   List<Schedule> _allSchedules = [];
   List<Completion> _completions = [];
   List<Completion> _todayCompletions = [];
@@ -27,7 +27,6 @@ class StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveC
   int _completedCount = 0;
   int _totalCount = 0;
   double _achievementRate = 0.0;
-  bool _isLoading = true;
 
   @override
   bool get wantKeepAlive => true;
@@ -35,43 +34,13 @@ class StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveC
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _loadData();
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      refreshData();
-    }
-  }
-
-  // Public 메서드: 외부에서 데이터 새로고침 호출 가능
-  Future<void> refreshData() async {
-    print('statistics_page: refreshData 호출됨');
-    await _loadData();
-  }
-
   Future<void> _loadData() async {
-    print('statistics_page: _loadData 시작');
-    setState(() {
-      _isLoading = true;
-    });
-
     await _loadSchedules();
     await _loadCompletions();
     _calculateTodayStatistics();
-
-    setState(() {
-      _isLoading = false;
-    });
-    print('statistics_page: _loadData 완료');
   }
 
   Future<void> _loadSchedules() async {
@@ -81,7 +50,6 @@ class StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveC
     if (user != null) {
       try {
         allSchedules = await _firestoreService.loadSchedules(user);
-        print('statistics_page: Firestore에서 ${allSchedules.length}개의 스케줄 로드');
       } catch (e) {
         print('statistics_page: Firestore 로드 실패: $e');
       }
@@ -97,7 +65,6 @@ class StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveC
           allSchedules = decoded
               .map((json) => Schedule.fromJson(json as Map<String, dynamic>))
               .toList();
-          print('statistics_page: 로컬에서 ${allSchedules.length}개의 스케줄 로드');
         }
       } catch (e) {
         print('statistics_page: 로컬 로드 실패: $e');
@@ -116,7 +83,6 @@ class StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveC
     if (user != null) {
       try {
         completions = await _firestoreService.loadCompletions(user);
-        print('statistics_page: Firestore에서 ${completions.length}개의 Completion 로드');
       } catch (e) {
         print('statistics_page: Firestore Completion 로드 실패: $e');
       }
@@ -132,7 +98,6 @@ class StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveC
           completions = decoded
               .map((json) => Completion.fromJson(json as Map<String, dynamic>))
               .toList();
-          print('statistics_page: 로컬에서 ${completions.length}개의 Completion 로드');
         }
       } catch (e) {
         print('statistics_page: 로컬 Completion 로드 실패: $e');
@@ -198,8 +163,6 @@ class StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveC
       _completedCount = completedCount;
       _achievementRate = _totalCount > 0 ? (_completedCount / _totalCount) * 100 : 0;
     });
-
-    print('statistics_page: 통계 계산 완료 - 완료: $_completedCount / 전체: $_totalCount (${_achievementRate.toInt()}%)');
   }
 
   List<Completion> _getIncompleteCompletions() {
@@ -237,35 +200,22 @@ class StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAliveC
             Container(
               color: const Color(0xFFD4D4E8),
               padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    '목표',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
+              child: const Align(
+                alignment: Alignment.bottomLeft,
+                child: Text(
+                  '목표',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: refreshData,
-                    tooltip: '새로고침',
-                  ),
-                ],
+                ),
               ),
             ),
 
             // Content
             Expanded(
-              child: _isLoading
-                  ? const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF7C6FDB),
-                ),
-              )
-                  : SingleChildScrollView(
+              child: SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
