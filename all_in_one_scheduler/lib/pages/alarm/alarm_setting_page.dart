@@ -67,7 +67,7 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
   void _navigateToPuzzleSetting() async {
     final initialQuiz = _quizSetting ?? QuizType(
       difficulty: QuizDifficulty.easy,
-      requiredCount: 1,
+      requiredCount: 3,
     );
 
     final result = await Navigator.push(

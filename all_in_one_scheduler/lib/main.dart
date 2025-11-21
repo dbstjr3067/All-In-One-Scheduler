@@ -10,11 +10,14 @@ import 'package:all_in_one_scheduler/pages/statistics_page.dart';
 import 'package:all_in_one_scheduler/pages/alarm_page.dart';
 import 'package:all_in_one_scheduler/pages/my_page.dart';
 
+import 'package:permission_handler/permission_handler.dart';
+
 const platform = MethodChannel('com.example.all_in_one_scheduler/unlock');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
+    name: 'All-In-One-Scheduler',
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await initializeDateFormatting('ko_KR', null);
@@ -66,7 +69,7 @@ class _HomePageState extends State<HomePage> {
       const AlarmPage(),
       const MyPage()
     ];
-
+    _checkOverlayPermission();
     platform.setMethodCallHandler((call) async {
       if (call.method == "fromUnlock") {
         debugPrint("언락 메시지 받았음");
@@ -83,6 +86,119 @@ class _HomePageState extends State<HomePage> {
       _selectedIndex = index; //탭 클릭 시 인덱스 변경
     });
   }
+
+  Future<void> _checkOverlayPermission() async {
+    // 위젯이 완전히 빌드된 후에 다이얼로그 표시
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (!mounted) return;
+
+    // 오버레이 권한 확인
+    final status = await Permission.systemAlertWindow.status;
+
+    if (!status.isGranted) {
+      _showPermissionDialog();
+    }
+  }
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  '권한 요청',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  '리마인더 기능 실행을 위해 권한을 허용해주세요',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '(다른 앱 위에 표시 권한이 필수로 필요합니다)',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          await _requestOverlayPermission();
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          '설정할게요',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          '괜찮아요',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _requestOverlayPermission() async {
+    // 안드로이드 설정 화면으로 이동
+    final status = await Permission.systemAlertWindow.request();
+
+    if (status.isGranted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('권한이 허용되었습니다')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context){
     return Scaffold(

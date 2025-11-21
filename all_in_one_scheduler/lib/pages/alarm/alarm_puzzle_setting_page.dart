@@ -17,7 +17,12 @@ class PuzzleOption {
 
 final List<PuzzleOption> _puzzleOptions = [
   PuzzleOption(
-    typeName: '곱셈퍼즐',
+    typeName: '덧셈 퍼즐',
+    description: '간단한 덧셈을 활용하여 뇌를 깨워보세요.',
+    imageUrl: 'https://placehold.co/100x100/FAD7A0/000?text=덧셈퍼즐',
+  ),
+  PuzzleOption(
+    typeName: '곱셈 퍼즐',
     description: '간단한 곱셈을 활용하여 뇌를 깨워보세요.',
     imageUrl: 'https://placehold.co/100x100/FAD7A0/000?text=곱셈퍼즐',
   ),
@@ -25,11 +30,6 @@ final List<PuzzleOption> _puzzleOptions = [
     typeName: '쉐이킹 퍼즐',
     description: '폰을 정해진 횟수만큼 흔들어 알람을 끄세요.',
     imageUrl: 'https://placehold.co/100x100/D9E2F3/000?text=쉐이킹',
-  ),
-  PuzzleOption(
-    typeName: '구구단 퍼즐',
-    description: '복잡한 구구단 문제를 풀어 잠에서 완전히 깨세요.',
-    imageUrl: 'https://placehold.co/100x100/AED6F1/000?text=구구단',
   ),
 ];
 
@@ -138,7 +138,7 @@ class _AlarmPuzzleSettingPageState extends State<AlarmPuzzleSettingPage> {
           color: _cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Colors.purple.shade700 : Colors.transparent,
+            color: isSelected ? Color(0xFF7C6FDB) : Colors.transparent,
             width: 2,
           ),
         ),
@@ -191,7 +191,7 @@ class _AlarmPuzzleSettingPageState extends State<AlarmPuzzleSettingPage> {
               padding: const EdgeInsets.only(top: 10),
               child: Icon(
                 isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: isSelected ? Colors.purple.shade700 : Colors.grey,
+                color: isSelected ? Color(0xFF7C6FDB) : Colors.grey,
               ),
             ),
           ],
@@ -214,9 +214,9 @@ class _AlarmPuzzleSettingPageState extends State<AlarmPuzzleSettingPage> {
 
         return ActionChip(
           label: Text(text),
-          backgroundColor: isSelected ? Colors.purple.shade200 : Colors.grey[200],
+          backgroundColor: isSelected ? Color(0xFF7C6FDB) : Colors.grey[200],
           labelStyle: TextStyle(
-            color: isSelected ? Colors.purple.shade900 : Colors.black,
+            color: isSelected ? Colors.white : Colors.black,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
           onPressed: () => _changeDifficulty(diff),
@@ -234,16 +234,12 @@ class _AlarmPuzzleSettingPageState extends State<AlarmPuzzleSettingPage> {
         children: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.black54)),
+            child: const Text('취소', style: TextStyle(color: Colors.black54, fontSize: 14)),
           ),
           const SizedBox(width: 10),
-          ElevatedButton(
+          TextButton(
             onPressed: _savePuzzleSetting,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple.shade700,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('저장', style: TextStyle(color: Colors.white)),
+            child: const Text('저장', style: TextStyle(color: Color(0xFF7C6FDB), fontSize: 14)),
           ),
         ],
       ),
