@@ -241,7 +241,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                           child: CustomPaint(
                             painter: CircularProgressPainter(
                               progress: _achievementRate / 100,
-                              strokeWidth: 25,
+                              strokeWidth: 13,
                             ),
                             child: Center(
                               child: Text(
@@ -262,7 +262,8 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                       // 달성 메시지
                       Center(
                         child: Text(
-                          '오늘 목표의 ${_achievementRate.toInt()}%를 달성했어요!',
+                          (incompleteCompletions.isEmpty) ?
+                          '모든 할 일을 완료했어요! 🎉' : '오늘 목표의 ${_achievementRate.toInt()}%를 달성했어요!',
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.black87,
@@ -286,7 +287,8 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                       const SizedBox(height: 40),
 
                       // 남은 할 일 타이틀
-                      const Text(
+                      if (!incompleteCompletions.isEmpty)
+                        const Text(
                         '남은 할 일이 있어요!!',
                         style: TextStyle(
                           fontSize: 24,
@@ -298,30 +300,7 @@ class _StatisticsPageState extends State<StatisticsPage> with AutomaticKeepAlive
                       const SizedBox(height: 20),
 
                       // 미완료 항목 리스트
-                      if (incompleteCompletions.isEmpty)
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(40),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.check_circle_outline,
-                                  size: 64,
-                                  color: Colors.green[300],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  '모든 할 일을 완료했어요! 🎉',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
+                      if (!incompleteCompletions.isEmpty)
                         ...incompleteCompletions.map((completion) {
                           final schedule = _allSchedules.firstWhere(
                                 (s) => s.title == completion.title,

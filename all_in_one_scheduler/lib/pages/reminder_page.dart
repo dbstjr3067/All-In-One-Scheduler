@@ -41,15 +41,25 @@ class ReminderPageState extends State<ReminderPage> with AutomaticKeepAliveClien
     super.initState();
     _selectedDate = DateTime.now();
     print('reminder_page: 이닛스테이트');
-    final User? user = FirebaseAuth.instance.currentUser;
-    if(user != null)
-      _loadCompletionsFromFirestore();
-    else
-      _loadCompletionsFromLocal();
-    _loadSchedules();
-    _filterCompletionsForToday();
+    _initializeData();
   }
 
+  Future<void> _initializeData() async {
+    final User? user = FirebaseAuth.instance.currentUser;
+
+    // 1단계: Completion 먼저 로드
+    if(user != null) {
+      await _loadCompletionsFromFirestore();
+    } else {
+      await _loadCompletionsFromLocal();
+    }
+
+    // 2단계: Completion 로드 완료 후 Schedule 로드
+    await _loadSchedules();
+
+    // 3단계: 필터링
+    _filterCompletionsForToday();
+  }
   // ==================== 스케줄 불러오기 ====================
 
   Future<void> _loadSchedules() async {

@@ -29,9 +29,13 @@ class Schedule {
     else {
       final dateDayFormatter = DateFormat('MM월 dd일 (E)', 'ko_KR');
       final timeFormatter = DateFormat('a h:mm', 'ko_KR');
-      final DayPart = dateDayFormatter.format(startTime!.toDate());
-      final TimePart = timeFormatter.format(startTime!.toDate());
-      return '$DayPart - $TimePart';
+      if(startTime != null) {
+        final DayPart = dateDayFormatter.format(startTime!.toDate());
+        final TimePart = timeFormatter.format(startTime!.toDate());
+        return '$DayPart - $TimePart';
+      }
+      else
+        return '스케줄 시간 불러오는중';
     }
   }
   // 현재 Schedule 객체의 모든 정보를 Map<String, dynamic>으로 변환 (데이터 저장 시 유용)
