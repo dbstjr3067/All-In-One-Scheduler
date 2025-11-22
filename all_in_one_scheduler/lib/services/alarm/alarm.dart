@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-class Alarm {
+class MyAlarm {
   // 알람이 울리는 요일 (월: 1, 화: 2, ..., 일: 7)
   // [1, 3, 5, 7] 은 월, 수, 금, 일을 의미합니다.
   List<int> repeatDays;
@@ -21,7 +21,7 @@ class Alarm {
   QuizType quizSetting;
 
   // 생성자
-  Alarm({
+  MyAlarm({
     required this.alarmTime,
     this.repeatDays = const [], // 기본 설정: 매일
     this.isEnabled = true,
@@ -31,14 +31,14 @@ class Alarm {
   }) : this.quizSetting = quizSetting ?? QuizType(); // QuizType이 제공되지 않으면 기본 설정 사용
 
   // 객체의 특정 필드만 변경하여 새로운 Alarm 객체를 생성하는 메서드
-  Alarm copyWith({
+  MyAlarm copyWith({
     TimeOfDay? alarmTime,
     List<int>? repeatDays,
     bool? isEnabled,
     soundAsset,
     QuizType? quizSetting,
   }) {
-    return Alarm(
+    return MyAlarm(
       alarmTime: alarmTime ?? this.alarmTime, // 값이 제공되지 않으면 기존 값 사용
       repeatDays: repeatDays ?? this.repeatDays,
       isEnabled: isEnabled ?? this.isEnabled,
@@ -107,8 +107,8 @@ class Alarm {
   }
 
   // Map<String, dynamic>을 Alarm 객체로 변환 (데이터 로드 시 유용)
-  factory Alarm.fromJson(Map<String, dynamic> json) {
-    return Alarm(
+  factory MyAlarm.fromJson(Map<String, dynamic> json) {
+    return MyAlarm(
       alarmTime: TimeOfDay(
         hour: json['alarmTime']['hour'] as int,
         minute: json['alarmTime']['minute'] as int,

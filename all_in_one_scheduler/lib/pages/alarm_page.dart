@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:core';
 import 'package:firebase_auth/firebase_auth.dart';
 
 // 프로젝트 경로에 맞게 수정
@@ -27,7 +28,7 @@ class _AlarmPageState extends State<AlarmPage> {
   static const Color _cardColor = Color(0xFFEBEBFF);
   static const String _alarmsKey = 'saved_alarms';
 
-  // final FirestoreService _firestoreService = FirestoreService();
+  final FirestoreService _firestoreService = FirestoreService();
   final AlarmSchedulerService _alarmScheduler = AlarmSchedulerService();
 
   @override
@@ -50,8 +51,7 @@ class _AlarmPageState extends State<AlarmPage> {
         final List<dynamic> decoded = jsonDecode(alarmsJson);
 
         setState(() {
-          // _alarms = decoded.map((json) => Alarm.fromJson(json as Map<String, dynamic>)).toList();
-          _alarms = decoded; // 임시
+          _alarms = decoded.map((json) => MyAlarm.fromJson(json as Map<String, dynamic>)).toList();
         });
 
         print('alarm_page: 로컬에서 ${_alarms.length}개의 알람을 불러왔습니다.');
@@ -90,8 +90,7 @@ class _AlarmPageState extends State<AlarmPage> {
     }
 
     try {
-      // final List<Alarm> firestoreAlarms = await _firestoreService.loadAlarms(user);
-      final List<dynamic> firestoreAlarms = []; // 임시
+      final List<MyAlarm> firestoreAlarms = await _firestoreService.loadAlarms(user);
 
       if (firestoreAlarms.isNotEmpty) {
         setState(() {
@@ -109,7 +108,7 @@ class _AlarmPageState extends State<AlarmPage> {
 
   Future<void> _saveAlarmsToFirestore(User user) async {
     try {
-      // await _firestoreService.saveAlarms(user, _alarms);
+      await _firestoreService.saveAlarms(user, _alarms);
       print('alarm_page: ${_alarms.length}개의 알람 목록을 Firestore에 성공적으로 저장했습니다.');
     } catch (e) {
       print('alarm_page: 알람 목록 Firestore 저장 실패: $e');
@@ -129,7 +128,7 @@ class _AlarmPageState extends State<AlarmPage> {
     ).then((result) {
       if (result != null) {
         setState(() {
-          if (result is Alarm) {
+          if (result is MyAlarm) {
             if (index != null) {
               // 수정
               _alarms[index] = result;

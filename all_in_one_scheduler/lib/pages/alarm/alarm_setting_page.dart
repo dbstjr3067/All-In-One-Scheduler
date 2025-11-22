@@ -7,7 +7,7 @@ import 'alarm_puzzle_setting_page.dart';
 import 'package:intl/intl.dart';
 
 class AlarmSettingPage extends StatefulWidget {
-  final Alarm? initialAlarm;
+  final MyAlarm? initialAlarm;
   final bool isEditMode;
 
   const AlarmSettingPage({
@@ -94,7 +94,7 @@ class _AlarmSettingPageState extends State<AlarmSettingPage> {
       }
     }
 
-    final alarm = Alarm(
+    final alarm = MyAlarm(
       alarmTime: TimeOfDay(hour: selectedHour, minute: selectedMinute),
       repeatDays: repeatDays,
       soundAsset: _soundAsset,

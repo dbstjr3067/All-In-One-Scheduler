@@ -10,7 +10,7 @@ class FirestoreService {
   // ==================== 알람 관련 ====================
 
   // 알람 데이터를 Firestore에 저장하는 함수
-  Future<void> saveAlarms(User user, List<Alarm> alarms) async {
+  Future<void> saveAlarms(User user, List<dynamic> alarms) async {
     final CollectionReference alarmCollectionRef = _db
         .collection('users')
         .doc(user.uid)
@@ -36,7 +36,7 @@ class FirestoreService {
   }
 
   // 알람 데이터를 불러오는 함수
-  Future<List<Alarm>> loadAlarms(User user) async {
+  Future<List<MyAlarm>> loadAlarms(User user) async {
     try {
       final CollectionReference alarmCollectionRef = _db
           .collection('users')
@@ -47,7 +47,7 @@ class FirestoreService {
 
       print("firestore_service: 총 ${querySnapshot.docs.length}개의 알람을 불러왔습니다.");
       return querySnapshot.docs
-          .map((doc) => Alarm.fromJson(doc.data() as Map<String, dynamic>))
+          .map((doc) => MyAlarm.fromJson(doc.data() as Map<String, dynamic>))
           .toList();
 
     } catch (e) {

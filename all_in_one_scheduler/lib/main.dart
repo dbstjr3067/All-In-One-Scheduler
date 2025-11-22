@@ -25,7 +25,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await Alarm.init();
   // Firebase 초기화
   await Firebase.initializeApp(
     name: 'All-In-One-Scheduler',

@@ -17,6 +17,11 @@ class PuzzleOption {
 
 final List<PuzzleOption> _puzzleOptions = [
   PuzzleOption(
+    typeName: '없음',
+    description: '알람에 퍼즐을 설정하지 않습니다.',
+    imageUrl: 'https://placehold.co/100x100/D9E2F3/000?text=없음',
+  ),
+  PuzzleOption(
     typeName: '덧셈 퍼즐',
     description: '간단한 덧셈을 활용하여 뇌를 깨워보세요.',
     imageUrl: 'https://placehold.co/100x100/FAD7A0/000?text=덧셈퍼즐',
@@ -25,11 +30,6 @@ final List<PuzzleOption> _puzzleOptions = [
     typeName: '곱셈 퍼즐',
     description: '간단한 곱셈을 활용하여 뇌를 깨워보세요.',
     imageUrl: 'https://placehold.co/100x100/FAD7A0/000?text=곱셈퍼즐',
-  ),
-  PuzzleOption(
-    typeName: '쉐이킹 퍼즐',
-    description: '폰을 정해진 횟수만큼 흔들어 알람을 끄세요.',
-    imageUrl: 'https://placehold.co/100x100/D9E2F3/000?text=쉐이킹',
   ),
 ];
 

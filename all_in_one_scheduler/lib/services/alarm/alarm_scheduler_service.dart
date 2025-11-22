@@ -2,6 +2,7 @@ import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:io';
 
 class AlarmSchedulerService {
   static final AlarmSchedulerService _instance = AlarmSchedulerService._internal();
@@ -47,11 +48,11 @@ class AlarmSchedulerService {
         scheduledTime = scheduledTime.add(const Duration(days: 1));
       }
 
-      await _scheduleOneTimeAlarm(index, scheduledTime, alarm);
+      await _scheduleOneTimeAlarm(index+1, scheduledTime, alarm);
     } else {
       // 반복 알람 - 다음 울릴 시간 계산
       DateTime nextAlarmTime = _getNextAlarmTime(now, alarmTime, alarm.repeatDays);
-      await _scheduleOneTimeAlarm(index, nextAlarmTime, alarm);
+      await _scheduleOneTimeAlarm(index+1, nextAlarmTime, alarm);
     }
   }
 
@@ -96,12 +97,20 @@ class AlarmSchedulerService {
       assetAudioPath: alarm.soundAsset ?? 'assets/sounds/alarm.mp3',
       loopAudio: true,
       vibrate: true,
-      volume: 1.0,
-      fadeDuration: 0.0,
-      notificationTitle: '알람',
-      notificationBody: '알람이 울립니다',
-      enableNotificationOnKill: true,
+      allowAlarmOverlap: false,
       androidFullScreenIntent: true,
+      warningNotificationOnKill: Platform.isIOS,
+      notificationSettings: const NotificationSettings(
+        title: '알람',
+        body: '알람을 끌까요?',
+        stopButton: '끄기',
+        icon: 'notification_icon',
+        iconColor: Color(0xFF7C6FDB),
+      ),
+      volumeSettings: VolumeSettings.fade(
+        volume: 0.8, 
+        fadeDuration: Duration(seconds: 10),
+      )
     );
 
     // 알람 설정

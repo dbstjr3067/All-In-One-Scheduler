@@ -35,9 +35,7 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen>
   }
 
   Future<void> _stopAlarm() async {
-    await Alarm.stopAll();
-    _animationController.dispose();
-
+    await Alarm.stopAll;
     if (mounted) {
       Navigator.of(context).pop();
     }
