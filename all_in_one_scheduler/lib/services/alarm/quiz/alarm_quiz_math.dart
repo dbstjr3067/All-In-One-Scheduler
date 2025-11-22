@@ -21,6 +21,7 @@ class _AlarmQuizMathScreenState extends State<AlarmQuizMathScreen> {
   late int _totalQuestions;
   late int _num1;
   late int _num2;
+  late int _num3;
   late String _operator;
   late int _correctAnswer;
   String _userAnswer = '';
@@ -40,50 +41,29 @@ class _AlarmQuizMathScreenState extends State<AlarmQuizMathScreen> {
     int maxNumber;
     switch (difficulty) {
       case 0: // 쉬움
-        maxNumber = 20;
+        maxNumber = 9;
         break;
       case 1: // 보통
-        maxNumber = 50;
+        maxNumber = 25;
         break;
       case 2: // 어려움
-        maxNumber = 100;
+        maxNumber = 30;
         break;
       default:
-        maxNumber = 50;
+        maxNumber = 25;
     }
 
     _num1 = random.nextInt(maxNumber) + 1;
     _num2 = random.nextInt(maxNumber) + 1;
+    difficulty == 2 ? _num3 = random.nextInt(maxNumber) + 1 : null;
 
     // 연산자 결정 (난이도에 따라)
-    final operators = difficulty == 0 ? ['+', '-'] : ['+', '-', '×', '÷'];
+    final operators = ['+'];
     _operator = operators[random.nextInt(operators.length)];
 
-    // 정답 계산
-    switch (_operator) {
-      case '+':
-        _correctAnswer = _num1 + _num2;
-        break;
-      case '-':
-      // 음수 방지
-        if (_num1 < _num2) {
-          final temp = _num1;
-          _num1 = _num2;
-          _num2 = temp;
-        }
-        _correctAnswer = _num1 - _num2;
-        break;
-      case '×':
-        _correctAnswer = _num1 * _num2;
-        break;
-      case '÷':
-      // 나누어 떨어지도록 조정
-        _num1 = _num2 * (random.nextInt(10) + 1);
-        _correctAnswer = _num1 ~/ _num2;
-        break;
-      default:
-        _correctAnswer = 0;
-    }
+    difficulty == 2 ?
+    _correctAnswer = _num1 + _num2 + _num3 :
+    _correctAnswer = _num1 + _num2;
 
     _userAnswer = '';
     _answerController.clear();
@@ -185,7 +165,9 @@ class _AlarmQuizMathScreenState extends State<AlarmQuizMathScreen> {
 
               // 문제 표시
               Text(
-                '$_num1$_operator$_num2=',
+                widget.alarm['quizSetting']['difficulty'] == 2 ?
+                '$_num1$_operator$_num2$_operator$_num3 =' :
+                '$_num1$_operator$_num2 =',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 56,

@@ -35,7 +35,7 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen>
   }
 
   Future<void> _stopAlarm() async {
-    await Alarm.stopAll;
+    await Alarm.stop(1);
     if (mounted) {
       Navigator.of(context).pop();
     }
