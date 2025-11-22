@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:all_in_one_scheduler/services/alarm/alarm_sound_service.dart';
+import 'package:alarm/alarm.dart';
 
 class AlarmQuizMathScreen extends StatefulWidget {
   final dynamic alarm;
@@ -15,7 +15,6 @@ class AlarmQuizMathScreen extends StatefulWidget {
 }
 
 class _AlarmQuizMathScreenState extends State<AlarmQuizMathScreen> {
-  final AlarmSoundService _alarmService = AlarmSoundService();
   final TextEditingController _answerController = TextEditingController();
 
   int _currentQuestionIndex = 1;
@@ -29,18 +28,13 @@ class _AlarmQuizMathScreenState extends State<AlarmQuizMathScreen> {
   @override
   void initState() {
     super.initState();
-    _totalQuestions = widget.alarm.quizSetting.requiredCount;
+    _totalQuestions = widget.alarm['quizSetting']['requiredCount'];
     _generateQuestion();
-    _startAlarm();
-  }
-
-  Future<void> _startAlarm() async {
-    await _alarmService.startAlarm();
   }
 
   void _generateQuestion() {
     final random = Random();
-    final difficulty = widget.alarm.quizSetting.difficulty.index;
+    final difficulty = widget.alarm['quizSetting']['difficulty'];
 
     // 난이도에 따라 숫자 범위 결정
     int maxNumber;
@@ -120,7 +114,7 @@ class _AlarmQuizMathScreenState extends State<AlarmQuizMathScreen> {
     if (userAnswerInt == _correctAnswer) {
       if (_currentQuestionIndex >= _totalQuestions) {
         // 모든 문제 완료
-        _alarmService.stopAlarm();
+        Alarm.stopAll();
         Navigator.of(context).pop(true); // 퀴즈 통과
       } else {
         // 다음 문제

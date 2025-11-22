@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
+import 'package:alarm/alarm.dart';
+
 import 'firebase_options.dart';
+
+import 'package:permission_handler/permission_handler.dart';
+import 'services/alarm/alarm_scheduler_service.dart';
+import 'services/alarm/alarm_ringing_screen.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:all_in_one_scheduler/pages/reminder_page.dart';
 import 'package:all_in_one_scheduler/pages/scheduler_page.dart';
@@ -10,31 +18,116 @@ import 'package:all_in_one_scheduler/pages/statistics_page.dart';
 import 'package:all_in_one_scheduler/pages/alarm_page.dart';
 import 'package:all_in_one_scheduler/pages/my_page.dart';
 
-import 'package:permission_handler/permission_handler.dart';
-
 const platform = MethodChannel('com.example.all_in_one_scheduler/unlock');
+
+// 전역 네비게이터 키
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase 초기화
   await Firebase.initializeApp(
     name: 'All-In-One-Scheduler',
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   await initializeDateFormatting('ko_KR', null);
+
+  // 알람 스케줄러 초기화
+  AlarmSchedulerService.navigatorKey = navigatorKey;
+  await AlarmSchedulerService().initialize();
+
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    _setupAlarmListener();
+  }
+
+  /// 알람 리스너 설정
+  void _setupAlarmListener() {
+    // 알람 스케줄러의 트리거 함수를 커스터마이즈
+    AlarmSchedulerService.onAlarmTriggered = _showAlarmScreen;
+
+    // 알람 스트림 리스닝 시작
+    AlarmSchedulerService().startListening();
+  }
+
+  /// 알람 화면 표시
+  Future<void> _showAlarmScreen() async {
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
+
+    // 저장된 알람 정보 불러오기
+    final prefs = await SharedPreferences.getInstance();
+    final alarmsJson = prefs.getString('saved_alarms');
+
+    String alarmTime = TimeOfDay.now().format(context);
+    String alarmLabel = '알람';
+    dynamic alarm;
+
+    if (alarmsJson != null && alarmsJson.isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(alarmsJson);
+        final now = DateTime.now();
+
+        // 현재 시간과 가장 가까운 활성화된 알람 찾기
+        for (var alarmJson in decoded) {
+          if (alarmJson['isEnabled'] == true) {
+            final hour = alarmJson['alarmTime']['hour'];
+            final minute = alarmJson['alarmTime']['minute'];
+
+            // 현재 시간과 비교 (±5분 이내)
+            final alarmDateTime = DateTime(now.year, now.month, now.day, hour, minute);
+            final difference = now.difference(alarmDateTime).inMinutes.abs();
+
+            if (difference <= 5) {
+              alarm = alarmJson;
+              alarmTime = TimeOfDay(hour: hour, minute: minute).format(context);
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        print('알람 정보 파싱 오류: $e');
+      }
+    }
+
+    // 알람 화면 표시
+    if (context.mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (context) => AlarmRingingScreen(
+            alarm: alarm,
+            alarmTime: alarmTime,
+            alarmLabel: alarmLabel,
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-//이 아래로 코드 작성, 위는 무시
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      title: '올인원 스케쥴러',
+      title: '올인원 스케줄러',
       home: const HomePage(),
-    ); //MaterialApp
+    );
   }
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
 }
 
 class HomePage extends StatefulWidget {
@@ -46,14 +139,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-  /*final List<Widget> _pages = const [
-    ReminderPage(),
-    SchedulerPage(),
-    StatisticsPage(),
-    AlarmPage(),
-    MyPage()
-  ];*/
-  final GlobalKey<ReminderPageState> _reminderPageKey = GlobalKey();
 
   late final List<Widget> _pages;
 
@@ -61,15 +146,16 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
-
     _pages = [
-      ReminderPage(), // ReminderPage에 Key 할당
-      SchedulerPage(), // SchedulerPage에 콜백 전달
-      const StatisticsPage(),
-      const AlarmPage(),
-      const MyPage()
+       ReminderPage(),
+       SchedulerPage(),
+       const StatisticsPage(),
+       const AlarmPage(),
+       const MyPage()
     ];
+
     _checkOverlayPermission();
+
     platform.setMethodCallHandler((call) async {
       if (call.method == "fromUnlock") {
         debugPrint("언락 메시지 받았음");
@@ -83,23 +169,20 @@ class _HomePageState extends State<HomePage> {
 
   void _onItemTapped(int index) {
     setState(() {
-      _selectedIndex = index; //탭 클릭 시 인덱스 변경
+      _selectedIndex = index;
     });
   }
 
   Future<void> _checkOverlayPermission() async {
-    // 위젯이 완전히 빌드된 후에 다이얼로그 표시
     await Future.delayed(const Duration(milliseconds: 100));
-
     if (!mounted) return;
 
-    // 오버레이 권한 확인
     final status = await Permission.systemAlertWindow.status;
-
     if (!status.isGranted) {
       _showPermissionDialog();
     }
   }
+
   void _showPermissionDialog() {
     showDialog(
       context: context,
@@ -142,7 +225,11 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Expanded(
                       child: TextButton(
-                        onPressed: () {
+                        onPressed: () async {
+                          await _requestOverlayPermission();
+                          if (mounted) {
+                            Navigator.of(context).pop();
+                          }
                         },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -185,9 +272,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _requestOverlayPermission() async {
-    // 안드로이드 설정 화면으로 이동
     final status = await Permission.systemAlertWindow.request();
-
     if (status.isGranted) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -202,7 +287,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed, // 4개 이상이면 이게 필요
+          type: BottomNavigationBarType.fixed,
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
           selectedItemColor: Colors.black,
@@ -226,7 +311,7 @@ class _HomePageState extends State<HomePage> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person),
-              label: '내정보',
+              label: '내 정보',
             ),
           ]
       ),

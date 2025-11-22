@@ -1,48 +1,24 @@
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:alarm/alarm.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:flutter/material.dart';
 
 class AlarmSchedulerService {
   static final AlarmSchedulerService _instance = AlarmSchedulerService._internal();
   factory AlarmSchedulerService() => _instance;
   AlarmSchedulerService._internal();
 
-  final FlutterLocalNotificationsPlugin _notificationsPlugin =
-  FlutterLocalNotificationsPlugin();
-
   // 전역 네비게이터 키 (main.dart에서 설정)
   static GlobalKey<NavigatorState>? navigatorKey;
 
+  // 알람 트리거 콜백 (main.dart에서 설정)
+  static Function? onAlarmTriggered;
+
   /// 초기화
   Future<void> initialize() async {
-    // Android Alarm Manager 초기화
-    await AndroidAlarmManager.initialize();
-
-    // 알림 초기화
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
-
-    await _notificationsPlugin.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
-    );
-
-    // Android 13+ 알림 권한 요청
-    await _notificationsPlugin
-        .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+    // Alarm 패키지 초기화
+    await Alarm.init();
+    print('Alarm 패키지 초기화 완료');
   }
 
   /// Alarm 객체를 받아서 알람 스케줄링
@@ -113,24 +89,31 @@ class AlarmSchedulerService {
     // 알람 정보 저장
     await _saveAlarmInfo(id, scheduledTime, alarm);
 
-    // Android Alarm Manager로 정확한 시간에 실행
-    await AndroidAlarmManager.oneShotAt(
-      scheduledTime,
-      id,
-      _alarmCallback,
-      exact: true,
-      wakeup: true,
-      rescheduleOnReboot: true,
+    // AlarmSettings 생성
+    final alarmSettings = AlarmSettings(
+      id: id,
+      dateTime: scheduledTime,
+      assetAudioPath: alarm.soundAsset ?? 'assets/sounds/alarm.mp3',
+      loopAudio: true,
+      vibrate: true,
+      volume: 1.0,
+      fadeDuration: 0.0,
+      notificationTitle: '알람',
+      notificationBody: '알람이 울립니다',
+      enableNotificationOnKill: true,
+      androidFullScreenIntent: true,
     );
+
+    // 알람 설정
+    await Alarm.set(alarmSettings: alarmSettings);
 
     print('알람 스케줄링 완료: ID=$id, 시간=$scheduledTime');
   }
 
   /// 알람 취소
   Future<void> cancelAlarm(int id) async {
-    await AndroidAlarmManager.cancel(id);
+    await Alarm.stop(id);
     await _removeAlarmInfo(id);
-    await _notificationsPlugin.cancel(id);
     print('알람 취소: $id');
   }
 
@@ -138,6 +121,10 @@ class AlarmSchedulerService {
   Future<void> rescheduleAllAlarms(List<dynamic> alarms) async {
     print('전체 알람 재스케줄링 시작: ${alarms.length}개');
 
+    // 기존 알람 모두 취소
+    await Alarm.stopAll();
+
+    // 새로 스케줄링
     for (int i = 0; i < alarms.length; i++) {
       await scheduleAlarmFromObject(alarms[i], i);
     }
@@ -172,66 +159,22 @@ class AlarmSchedulerService {
     return null;
   }
 
-  /// 알림 탭 처리
-  void _onNotificationTapped(NotificationResponse response) {
-    print('알림 탭됨: ${response.payload}');
-    _triggerAlarmScreen();
-  }
-
-  /// 알람 콜백 (백그라운드에서 실행)
-  @pragma('vm:entry-point')
-  static Future<void> _alarmCallback() async {
-    print('알람 콜백 실행됨');
-
-    final service = AlarmSchedulerService();
-    await service._showAlarmNotification();
-  }
-
-  /// 알람 알림 표시 (Full Screen Intent)
-  Future<void> _showAlarmNotification() async {
-    final androidDetails = AndroidNotificationDetails(
-      'alarm_channel',
-      '알람',
-      channelDescription: '알람 알림',
-      importance: Importance.max,
-      priority: Priority.max,
-      category: AndroidNotificationCategory.alarm,
-      fullScreenIntent: true,
-      playSound: true,
-      enableVibration: true,
-      ongoing: true,
-      autoCancel: false,
-    );
-
-    final iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-      interruptionLevel: InterruptionLevel.critical,
-    );
-
-    final notificationDetails = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
-
-    await _notificationsPlugin.show(
-      0,
-      '알람',
-      '알람이 울립니다',
-      notificationDetails,
-      payload: 'alarm_triggered',
-    );
-
-    // 알람 화면 트리거
-    _triggerAlarmScreen();
+  /// 알람 스트림 리스닝 시작
+  void startListening() {
+    // Alarm 패키지의 알람 스트림 구독
+    Alarm.ringStream.stream.listen((alarmSettings) {
+      print('알람 울림 감지: ID=${alarmSettings.id}');
+      _triggerAlarmScreen();
+    });
   }
 
   /// 알람 화면 트리거
-  void _triggerAlarmScreen() {
-    if (navigatorKey?.currentContext != null) {
-      // 알람 화면으로 이동하는 로직
-      // main.dart에서 처리
+  static void _triggerAlarmScreen() async {
+    // main.dart에서 설정한 콜백 호출
+    if (onAlarmTriggered != null) {
+      await onAlarmTriggered!();
+    } else {
+      print('알람 트리거 콜백이 설정되지 않았습니다.');
     }
   }
 }

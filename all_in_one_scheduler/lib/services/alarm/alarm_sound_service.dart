@@ -1,42 +1,19 @@
-import 'package:audioplayers/audioplayers.dart';
-import 'package:vibration/vibration.dart';
+import 'package:alarm/alarm.dart';
 
 class AlarmSoundService {
   static final AlarmSoundService _instance = AlarmSoundService._internal();
   factory AlarmSoundService() => _instance;
   AlarmSoundService._internal();
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
 
-  /// 알람 소리 재생 시작
+  /// 알람 소리 재생 시작 (alarm 패키지가 자동으로 처리)
   Future<void> startAlarm({
-    String soundPath = 'sounds/alarm.mp3', // assets 폴더의 알람 소리
+    String soundPath = 'sounds/alarm.mp3',
     bool enableVibration = true,
   }) async {
-    if (_isPlaying) return;
-
-    try {
-      _isPlaying = true;
-
-      // 볼륨 최대로 설정
-      await _audioPlayer.setVolume(1.0);
-
-      // 반복 재생 모드
-      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-
-      // 알람 소리 재생
-      await _audioPlayer.play(AssetSource(soundPath));
-
-      // 진동 시작 (가능한 경우)
-      if (enableVibration && await Vibration.hasVibrator() == true) {
-        // 500ms 진동, 500ms 멈춤을 반복
-        Vibration.vibrate(pattern: [500, 500], repeat: 0);
-      }
-    } catch (e) {
-      print('알람 재생 오류: $e');
-      _isPlaying = false;
-    }
+    _isPlaying = true;
+    print('알람 소리 재생 중 (alarm 패키지)');
   }
 
   /// 알람 소리 정지
@@ -44,9 +21,10 @@ class AlarmSoundService {
     if (!_isPlaying) return;
 
     try {
-      await _audioPlayer.stop();
-      await Vibration.cancel();
+      // 현재 울리고 있는 알람 모두 정지
+      await Alarm.stopAll();
       _isPlaying = false;
+      print('알람 소리 정지');
     } catch (e) {
       print('알람 정지 오류: $e');
     }
@@ -57,6 +35,6 @@ class AlarmSoundService {
 
   /// 서비스 정리
   void dispose() {
-    _audioPlayer.dispose();
+    // alarm 패키지가 자동으로 처리
   }
 }

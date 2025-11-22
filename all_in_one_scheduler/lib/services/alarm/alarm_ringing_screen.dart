@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'alarm_sound_service.dart';
+import 'package:alarm/alarm.dart';
 import 'quiz/alarm_quiz_math.dart';
 
 class AlarmRingingScreen extends StatefulWidget {
@@ -22,7 +22,6 @@ class AlarmRingingScreen extends StatefulWidget {
 class _AlarmRingingScreenState extends State<AlarmRingingScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  final AlarmSoundService _alarmService = AlarmSoundService();
 
   @override
   void initState() {
@@ -33,17 +32,10 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
-
-    // 알람 소리 재생 시작
-    _startAlarm();
-  }
-
-  Future<void> _startAlarm() async {
-    await _alarmService.startAlarm();
   }
 
   Future<void> _stopAlarm() async {
-    await _alarmService.stopAlarm();
+    await Alarm.stopAll();
     _animationController.dispose();
 
     if (mounted) {
@@ -55,11 +47,8 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen>
   Future<void> _handleMainAction() async {
     // 퀴즈 설정 확인
     if (widget.alarm != null &&
-        widget.alarm.quizSetting != null &&
-        widget.alarm.quizSetting.typeName != '없음') {
-
-      // 소리만 일시 정지 (퀴즈 화면에서 계속 재생)
-      await _alarmService.stopAlarm();
+        widget.alarm['quizSetting'] != null &&
+        widget.alarm['quizSetting']['typeName'] != '없음') {
 
       if (mounted) {
         // 퀴즈 화면으로 이동
@@ -72,15 +61,13 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen>
           ),
         );
 
-        // 퀴즈를 통과하면 알람 종료, 아니면 다시 소리 재생
+        // 퀴즈를 통과하면 알람 종료
         if (result == true) {
           _animationController.dispose();
+          await Alarm.stopAll();
           if (mounted) {
             Navigator.of(context).pop();
           }
-        } else {
-          // 퀴즈 실패 또는 뒤로가기 시 알람 다시 재생
-          await _startAlarm();
         }
       }
     } else {
@@ -99,8 +86,8 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen>
 
   String _getButtonText() {
     if (widget.alarm != null &&
-        widget.alarm.quizSetting != null &&
-        widget.alarm.quizSetting.typeName != '없음') {
+        widget.alarm['quizSetting'] != null &&
+        widget.alarm['quizSetting']['typeName'] != '없음') {
       return '퀴즈 시작';
     }
     return '알람 끄기';
@@ -183,7 +170,6 @@ class _AlarmRingingScreenState extends State<AlarmRingingScreen>
   @override
   void dispose() {
     _animationController.dispose();
-    _alarmService.stopAlarm();
     super.dispose();
   }
 }
