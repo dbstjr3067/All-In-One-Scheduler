@@ -20,18 +20,20 @@ class Schedule {
     this.startTime,
     required this.isRecurring,
   });
-  String get formattedTime {
+  String formattedTime(DateTime selectedDate) {
+    DateTime day;
+    selectedDate.isAfter(startTime!.toDate()) ? day = selectedDate : day = startTime!.toDate();
     if(isAllDay){
       final dateDayFormatter = DateFormat('MM월 dd일 (E)', 'ko_KR');
-      final DayPart = dateDayFormatter.format(startTime!.toDate());
+      final DayPart = dateDayFormatter.format(day);
       return '$DayPart - 하루 종일';
     }
     else {
       final dateDayFormatter = DateFormat('MM월 dd일 (E)', 'ko_KR');
       final timeFormatter = DateFormat('a h:mm', 'ko_KR');
       if(startTime != null) {
-        final DayPart = dateDayFormatter.format(startTime!.toDate());
-        final TimePart = timeFormatter.format(startTime!.toDate());
+        final DayPart = dateDayFormatter.format(day);
+        final TimePart = timeFormatter.format(day);
         return '$DayPart - $TimePart';
       }
       else

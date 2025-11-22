@@ -40,6 +40,12 @@ dependencies:
   intl: ^0.18.0
   shared_preferences: ^2.2.0
   permission_handler: ^11.0.1
+  #알람 울리는거
+  audioplayers: ^5.2.1
+  flutter_local_notifications: ^16.3.0
+  vibration: ^1.8.4
+  # 백그라운드 알람 스케줄링 (Android)
+  android_alarm_manager_plus: ^3.0.4
 
 dev_dependencies:
   flutter_test:

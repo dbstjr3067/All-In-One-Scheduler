@@ -25,6 +25,7 @@ class ReminderPageState extends State<ReminderPage> with AutomaticKeepAliveClien
   final FirestoreService _firestoreService = FirestoreService();
 
   late DateTime _selectedDate;
+  bool _isLoading = true;
 
   // AutomaticKeepAliveClientMixin 필수 오버라이드
   @override
@@ -40,11 +41,16 @@ class ReminderPageState extends State<ReminderPage> with AutomaticKeepAliveClien
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
-    print('reminder_page: 이닛스테이트');
     _initializeData();
   }
 
   Future<void> _initializeData() async {
+    if(mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
     final User? user = FirebaseAuth.instance.currentUser;
 
     // 1단계: Completion 먼저 로드
@@ -59,6 +65,12 @@ class ReminderPageState extends State<ReminderPage> with AutomaticKeepAliveClien
 
     // 3단계: 필터링
     _filterCompletionsForToday();
+
+    if(mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
   // ==================== 스케줄 불러오기 ====================
 
@@ -512,7 +524,26 @@ class ReminderPageState extends State<ReminderPage> with AutomaticKeepAliveClien
 
             // Completion List
             Expanded(
-              child: _todayCompletions.isEmpty
+              child: _isLoading // 로딩 중일 때 CircularProgressIndicator 표시
+                  ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      color: Color(0xFF7C6FDB),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '로딩중..',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ),
+              )
+                  : _todayCompletions.isEmpty
                   ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -641,7 +672,7 @@ class ReminderPageState extends State<ReminderPage> with AutomaticKeepAliveClien
                         : Colors.black.withOpacity(0.6),
                   ),
                   child: Text(
-                    schedule.formattedTime,
+                    schedule.formattedTime(_selectedDate),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

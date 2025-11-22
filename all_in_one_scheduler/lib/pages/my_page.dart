@@ -9,6 +9,8 @@ import 'package:all_in_one_scheduler/services/alarm/alarm.dart';
 import 'package:all_in_one_scheduler/services/alarm/quiz_type.dart';
 import 'package:all_in_one_scheduler/services/firestore_service.dart';
 
+import 'package:permission_handler/permission_handler.dart';
+
 class MyPage extends StatefulWidget {
   const MyPage({Key? key}) : super(key: key);
 
@@ -25,6 +27,14 @@ class _MyPageState extends State<MyPage> {
   void initState() {
     super.initState();
     _user = FirebaseAuth.instance.currentUser;
+    // Firebase Auth 상태 변경 리스너 추가
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (mounted) {
+        setState(() {
+          _user = user;
+        });
+      }
+    });
   }
 
   Future<void> _signInWithGoogle() async {
@@ -63,18 +73,63 @@ class _MyPageState extends State<MyPage> {
       debugPrint("Firestore에 사용자 정보 저장 완료: ${user.email}");
     } catch (e) {
       debugPrint("로그인 오류: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('로그인 실패: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('로그인 실패: $e')),
+        );
+      }
     }
   }
 
   Future<void> _signOut() async {
-    await FirebaseAuth.instance.signOut();
-    await GoogleSignIn().signOut();
-    setState(() {
-      _user = null;
-    });
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            '로그아웃 하시겠습니까?',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          content: const Text(
+            '게스트 상태에서의 알람, 스케줄 저장 및 수정은 서버에 반영되지 않습니다.\n다른 계정에 로그인할 시 게스트 상태의 저장정보는 지워집니다.',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                '로그아웃',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldSignOut == true) {
+      await FirebaseAuth.instance.signOut();
+      await GoogleSignIn().signOut();
+      setState(() {
+        _user = null;
+      });
+    }
+  }
+
+  Future<void> _requestOverlayPermission() async {
+    final status = await Permission.systemAlertWindow.request();
+
+    if (status.isGranted) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('권한이 허용되었습니다')),
+        );
+      }
+    }
   }
 
   @override
@@ -84,14 +139,13 @@ class _MyPageState extends State<MyPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // AppBar를 Container로 변경
             Container(
               color: const Color(0xFFD4D4E8),
               padding: const EdgeInsets.all(16),
               child: const Align(
                 alignment: Alignment.bottomLeft,
                 child: Text(
-                  '내정보',
+                  '내 정보',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -100,22 +154,8 @@ class _MyPageState extends State<MyPage> {
                 ),
               ),
             ),
-            // 기존 body 내용
             Expanded(
-              child: _user == null
-                  ? Center(
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.login),
-                  label: const Text("Google 계정으로 로그인"),
-                  onPressed: _signInWithGoogle,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                ),
-              )
-                  : SingleChildScrollView(
+              child: SingleChildScrollView(
                 child: Column(
                   children: [
                     // 사용자 프로필 카드
@@ -136,9 +176,14 @@ class _MyPageState extends State<MyPage> {
                       child: Row(
                         children: [
                           CircleAvatar(
-                            backgroundImage: NetworkImage(_user!.photoURL ?? ""),
+                            backgroundImage: _user?.photoURL != null
+                                ? NetworkImage(_user!.photoURL!)
+                                : null,
                             radius: 32,
                             backgroundColor: Colors.white,
+                            child: _user == null
+                                ? const Icon(Icons.person, size: 32, color: Color(0xFF7C6FDB))
+                                : null,
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -146,15 +191,35 @@ class _MyPageState extends State<MyPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _user!.displayName ?? "사용자",
+                                  _user?.displayName ?? "게스트",
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
+                                const SizedBox(height: 8),
+                                _user == null
+                                    ? ElevatedButton.icon(
+                                  icon: const Icon(Icons.login, size: 16),
+                                  label: const Text(
+                                    "구글 계정으로 로그인",
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                  onPressed: _signInWithGoogle,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF7C6FDB),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    elevation: 0,
+                                  ),
+                                )
+                                    : Text(
                                   _user!.email ?? "",
                                   style: const TextStyle(
                                     fontSize: 13,
@@ -211,16 +276,20 @@ class _MyPageState extends State<MyPage> {
                             iconColor: const Color(0xFF7C6FDB),
                             title: "접근성 설정",
                             subtitle: "앱 내 허용되는 기능 설정",
-                            onTap: () {},
+                            onTap: () async {
+                              await _requestOverlayPermission();
+                            },
                           ),
-                          _buildDivider(),
-                          _buildMenuItem(
-                            icon: Icons.logout_outlined,
-                            iconColor: const Color(0xFF7C6FDB),
-                            title: "로그아웃",
-                            subtitle: "계정 로그아웃하기",
-                            onTap: _signOut,
-                          ),
+                          if (_user != null) ...[
+                            _buildDivider(),
+                            _buildMenuItem(
+                              icon: Icons.logout_outlined,
+                              iconColor: const Color(0xFF7C6FDB),
+                              title: "로그아웃",
+                              subtitle: "계정 로그아웃하기",
+                              onTap: _signOut,
+                            ),
+                          ],
                         ],
                       ),
                     ),

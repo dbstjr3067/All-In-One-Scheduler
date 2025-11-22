@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:core';
 import 'package:all_in_one_scheduler/services/schedule/schedule.dart';
 import 'package:all_in_one_scheduler/pages/scheduler/schedule_setting_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -345,7 +346,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
                             padding: EdgeInsets.only(bottom: screenWidth * 0.04),
                             child: _buildScheduleItem(
                               title: schedule.title,
-                              time: schedule.formattedTime,
+                              time: schedule.formattedTime(selectedDate),
                               screenWidth: screenWidth,
                             ),
                           ),

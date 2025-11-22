@@ -142,9 +142,7 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Expanded(
                       child: TextButton(
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          await _requestOverlayPermission();
+                        onPressed: () {
                         },
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
