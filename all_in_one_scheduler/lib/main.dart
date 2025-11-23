@@ -25,6 +25,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  //Alarm 패키지 초기화
   await Alarm.init();
   // Firebase 초기화
   await Firebase.initializeApp(
