@@ -1,3 +1,4 @@
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -11,6 +12,7 @@ import 'services/alarm/alarm_scheduler_service.dart';
 import 'services/alarm/alarm_ringing_screen.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/data/latest.dart' as tz;
 
 import 'package:all_in_one_scheduler/pages/reminder_page.dart';
 import 'package:all_in_one_scheduler/pages/scheduler_page.dart';
@@ -22,6 +24,7 @@ const platform = MethodChannel('com.example.all_in_one_scheduler/unlock');
 
 // 전역 네비게이터 키
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,12 +37,56 @@ void main() async {
   );
 
   await initializeDateFormatting('ko_KR', null);
+  tz.initializeTimeZones();
+  await _initializeNotifications();
 
   // 알람 스케줄러 초기화
   AlarmSchedulerService.navigatorKey = navigatorKey;
   await AlarmSchedulerService().initialize();
 
   runApp(const MyApp());
+}
+
+Future<void> _initializeNotifications() async {
+  // 1. Android 초기화 설정
+  // 'app_icon' 부분은 반드시 Android 리소스에 존재하는 파일 이름이어야 합니다.
+  // (예: android/app/src/main/res/mipmap/app_icon.png)
+  const AndroidInitializationSettings initializationSettingsAndroid =
+  AndroidInitializationSettings(
+      'mipmap/launcher_icon' // <-- **이 부분을 확인하세요! NullPointerException을 막습니다.**
+  );
+
+  // 2. iOS 및 macOS 초기화 설정
+  // 요청할 권한을 설정합니다.
+  const DarwinInitializationSettings initializationSettingsDarwin =
+  DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+  );
+
+  // 3. 전체 플랫폼 초기화 설정
+  final InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsDarwin,
+    macOS: initializationSettingsDarwin,
+  );
+
+  // 4. 플러그인 초기화 실행
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+    onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
+    // onDidReceiveBackgroundNotificationResponse: onDidReceiveNotificationResponse, // 백그라운드 응답 처리 (필요시 추가)
+  );
+}
+
+void onDidReceiveNotificationResponse(NotificationResponse notificationResponse) async {
+  final String? payload = notificationResponse.payload;
+  if (notificationResponse.payload != null) {
+    debugPrint('Notification payload: $payload');
+  }
+  // 여기서 알림 페이로드에 따라 특정 화면으로 이동하거나 작업을 수행할 수 있습니다.
+  // 예: navigatorKey.currentState?.pushNamed('/details', arguments: payload);
 }
 
 class _MyAppState extends State<MyApp> {
@@ -300,7 +347,7 @@ class _HomePageState extends State<HomePage> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.book),
-              label: '계획',
+              label: '스케줄',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.bar_chart),

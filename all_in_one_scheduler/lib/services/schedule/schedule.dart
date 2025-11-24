@@ -22,7 +22,11 @@ class Schedule {
   });
   String formattedTime(DateTime selectedDate) {
     DateTime day;
-    selectedDate.isAfter(startTime!.toDate()) ? day = selectedDate : day = startTime!.toDate();
+    if (selectedDate.isAfter(startTime!.toDate())){
+      day = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, startTime!.toDate().hour, startTime!.toDate().minute, 0);
+    }
+    else
+      day = startTime!.toDate();
     if(isAllDay){
       final dateDayFormatter = DateFormat('MM월 dd일 (E)', 'ko_KR');
       final DayPart = dateDayFormatter.format(day);

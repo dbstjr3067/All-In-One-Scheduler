@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:core';
 import 'package:all_in_one_scheduler/services/schedule/schedule.dart';
 import 'package:all_in_one_scheduler/pages/scheduler/schedule_setting_page.dart';
+import 'package:all_in_one_scheduler/pages/scheduler/schedule_notification_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:all_in_one_scheduler/services/firestore_service.dart';
 
@@ -25,6 +26,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
   late DateTime displayMonth;
 
   final FirestoreService _firestoreService = FirestoreService();
+  final ScheduleNotificationService _notificationService = ScheduleNotificationService();
 
   @override
   void initState() {
@@ -55,6 +57,8 @@ class _SchedulerPageState extends State<SchedulerPage> {
           _filterSchedulesForSelectedDate();
         });
         print('scheduler_page: 로컬에서 ${_schedules.length}개의 스케줄을 불러왔습니다.');
+
+        await _scheduleNotifications();
       } else {
         print('scheduler_page: 저장된 스케줄이 없습니다.');
       }
@@ -71,6 +75,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
       final String alarmsJson = jsonEncode(alarmsMap);
       await prefs.setString(_schedulesKey, alarmsJson);
       print('schedule_page: ${_schedules.length}개의 스케줄을 로컬에 저장했습니다.');
+      await _scheduleNotifications();
     } catch (e) {
       print('schedule_page: 스케줄 저장 실패: $e');
     }
@@ -110,6 +115,11 @@ class _SchedulerPageState extends State<SchedulerPage> {
     }
   }
 
+  Future<void> _scheduleNotifications() async {
+    // Schedule 객체를 Map으로 변환
+    final schedulesJson = _schedules.map((s) => s.toJson()).toList();
+    await _notificationService.scheduleNotificationsFromSchedules(schedulesJson);
+  }
   // 선택된 날짜의 스케줄만 필터링
   void _filterSchedulesForSelectedDate() {
     setState(() {
@@ -186,7 +196,7 @@ class _SchedulerPageState extends State<SchedulerPage> {
             child: const Align(
               alignment: Alignment.bottomLeft,
               child: Text(
-                '캘린더',
+                '스케줄',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,

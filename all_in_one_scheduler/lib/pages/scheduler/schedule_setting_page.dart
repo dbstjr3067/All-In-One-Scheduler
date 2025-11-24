@@ -366,10 +366,10 @@ class _ScheduleSetterState extends State<ScheduleSetter> {
 
                             Timestamp startTime;
                             if (_isAllDay) {
-                              // 하루 종일: 00:00으로 설정
+                              // 하루 종일: 08:00으로 설정
                               startTime = getStartTime(
                                 originalDateTime: selectedDateTime,
-                                newHour: 0,
+                                newHour: 8,
                                 newMinute: 0,
                               );
                             } else {
