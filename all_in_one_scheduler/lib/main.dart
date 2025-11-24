@@ -29,7 +29,7 @@ void main() async {
   await Alarm.init();
   // Firebase 초기화
   await Firebase.initializeApp(
-    name: 'All-In-One-Scheduler',
+    name: '올인원 스케줄러',
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
