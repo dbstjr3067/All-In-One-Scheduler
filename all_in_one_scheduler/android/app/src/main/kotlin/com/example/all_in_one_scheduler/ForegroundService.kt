@@ -28,9 +28,9 @@ class ForegroundService : Service() {
         createNotificationChannel()
         //알림 생성
         val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setContentTitle("3 개의 루틴을 수행함")
-            .setContentText("달성한 루틴을 체크하세요! 3/10")
-            .setSmallIcon(R.mipmap.ic_launcher) // 앱 아이콘 사용
+            .setContentTitle("올인원 스케줄러")
+            .setContentText("오늘의 스케줄을 확인하세요!")
+            .setSmallIcon(R.mipmap.launcher_icon) // 앱 아이콘 사용
             .setPriority(NotificationCompat.PRIORITY_MIN) // 가장 낮은 우선순위
             .setSilent(true) // 소리/진동 없음
             .build()
